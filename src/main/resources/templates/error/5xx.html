@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Something went wrong')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('')}"></header>
+<main class="page">
+    <div class="error-page">
+        <div class="code">500</div>
+        <h1>Something went wrong</h1>
+        <p class="muted">The server hit an error while handling your request. Please try again later.</p>
+        <p><a class="btn" th:href="@{/dashboard}">Back to dashboard</a></p>
+    </div>
+</main>
+</body>
+</html>

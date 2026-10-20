@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Page not found')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('')}"></header>
+<main class="page">
+    <div class="error-page">
+        <div class="code">404</div>
+        <h1>Page not found</h1>
+        <p class="muted">This page does not exist, or you do not have permission to view it.</p>
+        <p><a class="btn" th:href="@{/dashboard}">Back to dashboard</a></p>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,60 @@
+# ---------- Build output ----------
+target/
+build/
+out/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+
+# ---------- Runtime data (never commit) ----------
+# Uploaded CVs, cover letters and JD files: users' personal data
+data/
+uploads/
+# Logs can contain the generated initial admin password
+*.log
+logs/
+
+# ---------- Secrets and local configuration (never commit) ----------
+# Local overrides with real passwords, e.g. src/main/resources/application-local.properties
+application-local.properties
+application-local.yml
+application-*-local.properties
+.env
+.env.*
+*.env
+!.env.example
+# Keys and certificates
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+
+# ---------- Database dumps / backups ----------
+# (Flyway scripts in src/main/resources/db/migration/*.sql ARE committed)
+*.dump
+*.sql.gz
+backup/
+backups/
+dump/
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+.sts4-cache/
+nbproject/
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+desktop.ini

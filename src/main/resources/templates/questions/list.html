@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Interview questions')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('questions')}"></header>
+<main class="page">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <h1>Interview questions</h1>
+            <div class="sub">Your own question bank for preparing and reviewing. Questions are private unless you make them public;
+                answers are always private. <a th:href="@{/hall}">Browse the interview hall</a></div>
+        </div>
+        <div class="actions">
+            <a class="btn btn-primary" th:href="@{/questions/new}">+ Add question</a>
+        </div>
+    </div>
+
+    <form class="tabs" aria-label="Question type" method="post" th:action="@{/questions/tab}">
+        <button type="submit" name="category" value="" th:classappend="${category == null} ? 'active'">
+            All <span class="tab-count" th:text="${counts.total()}">0</span></button>
+        <button type="submit" name="category" value="TECHNICAL"
+                th:classappend="${category != null and category.name() == 'TECHNICAL'} ? 'active'">
+            Technical <span class="tab-count" th:text="${counts.technical()}">0</span></button>
+        <button type="submit" name="category" value="BEHAVIORAL"
+                th:classappend="${category != null and category.name() == 'BEHAVIORAL'} ? 'active'">
+            Behavioral <span class="tab-count" th:text="${counts.behavioral()}">0</span></button>
+    </form>
+
+    <section class="card">
+        <form th:action="@{/questions/filter}" method="post" class="filters">
+            <div class="field">
+                <label for="q">Search</label>
+                <input type="text" id="q" name="q" th:value="${q}" placeholder="Question or answer">
+            </div>
+            <div class="field">
+                <label for="rating">My answer</label>
+                <select id="rating" name="rating">
+                    <option value="">Any</option>
+                    <option th:each="r : ${ratings}" th:value="${r}" th:text="${r.label}"
+                            th:selected="${r == rating}"></option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="submit" class="btn" th:formaction="@{/questions/reset}">Reset</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <p class="empty" th:if="${#lists.isEmpty(questions)}">
+            <span th:if="${counts.total() == 0}">No questions yet. Add the questions you were asked, or ones you want to practise.</span>
+            <span th:unless="${counts.total() == 0}">No questions match these filters.</span>
+        </p>
+
+        <article class="q-item" th:each="item : ${questions}">
+            <div class="q-meta">
+                <span class="badge" th:classappend="${item.category.css}" th:text="${item.category.label}"></span>
+                <span class="badge" th:if="${item.selfRating}" th:classappend="${item.selfRating.css}"
+                      th:text="${item.selfRating.label}"></span>
+                <span class="badge vis-public" th:if="${item.isPublic()}" title="Shown in the interview hall (your answer stays private)">Public</span>
+                <span class="badge vis-private" th:unless="${item.isPublic()}">Private</span>
+                <span class="q-actions">
+                    <a class="btn btn-sm" th:href="@{/questions/{id}/edit(id=${item.id})}">Edit</a>
+                    <form class="inline" method="post" th:action="@{/questions/{id}/delete(id=${item.id})}"
+                          data-confirm="Delete this question?">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </span>
+            </div>
+            <div class="q-text" th:text="${item.questionText}">Question</div>
+            <details class="q-answer" th:if="${item.answerText}">
+                <summary>My answer</summary>
+                <div class="notes" th:text="${item.answerText}"></div>
+            </details>
+            <div class="muted q-noanswer" th:unless="${item.answerText}">No answer written yet</div>
+        </article>
+    </section>
+</main>
+</body>
+</html>

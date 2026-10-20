@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- Interview form fields; use inside a form with th:object="${interviewForm}" -->
+<div th:fragment="fields" class="form-grid">
+    <div class="field" th:classappend="${#fields.hasErrors('roundNumber')} ? 'has-error'">
+        <label for="roundNumber" class="req">Round</label>
+        <input type="number" th:field="*{roundNumber}" min="1" max="99">
+        <span class="field-error" th:if="${#fields.hasErrors('roundNumber')}" th:errors="*{roundNumber}"></span>
+    </div>
+    <div class="field" th:classappend="${#fields.hasErrors('interviewType')} ? 'has-error'">
+        <label for="interviewType" class="req">Type</label>
+        <select th:field="*{interviewType}">
+            <option th:each="t : ${interviewTypes}" th:value="${t}" th:text="${t.label}"></option>
+        </select>
+        <span class="field-error" th:if="${#fields.hasErrors('interviewType')}" th:errors="*{interviewType}"></span>
+    </div>
+    <div class="field" th:classappend="${#fields.hasErrors('scheduledAt')} ? 'has-error'">
+        <label for="scheduledAt">Date &amp; time</label>
+        <input type="datetime-local" th:field="*{scheduledAt}">
+        <span class="field-error" th:if="${#fields.hasErrors('scheduledAt')}" th:errors="*{scheduledAt}"></span>
+    </div>
+    <div class="field" th:classappend="${#fields.hasErrors('durationMinutes')} ? 'has-error'">
+        <label for="durationMinutes">Duration (minutes)</label>
+        <input type="number" th:field="*{durationMinutes}" min="1" max="1440">
+        <span class="field-error" th:if="${#fields.hasErrors('durationMinutes')}" th:errors="*{durationMinutes}"></span>
+    </div>
+    <div class="field" th:classappend="${#fields.hasErrors('interviewer')} ? 'has-error'">
+        <label for="interviewer">Interviewer</label>
+        <input type="text" th:field="*{interviewer}" maxlength="200">
+        <span class="field-error" th:if="${#fields.hasErrors('interviewer')}" th:errors="*{interviewer}"></span>
+    </div>
+    <div class="field" th:classappend="${#fields.hasErrors('outcome')} ? 'has-error'">
+        <label for="outcome" class="req">Outcome</label>
+        <select th:field="*{outcome}">
+            <option th:each="o : ${outcomes}" th:value="${o}" th:text="${o.label}"></option>
+        </select>
+        <span class="field-error" th:if="${#fields.hasErrors('outcome')}" th:errors="*{outcome}"></span>
+    </div>
+    <div class="field full" th:classappend="${#fields.hasErrors('location')} ? 'has-error'">
+        <label for="location">Location / meeting link</label>
+        <input type="text" th:field="*{location}" maxlength="500">
+        <span class="field-error" th:if="${#fields.hasErrors('location')}" th:errors="*{location}"></span>
+    </div>
+    <div class="field full" th:classappend="${#fields.hasErrors('notes')} ? 'has-error'">
+        <label for="notes">Reflection notes</label>
+        <textarea th:field="*{notes}" maxlength="10000"
+                  placeholder="Questions asked, what went well, what to improve..."></textarea>
+        <span class="field-error" th:if="${#fields.hasErrors('notes')}" th:errors="*{notes}"></span>
+    </div>
+</div>
+</body>
+</html>

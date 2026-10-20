@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Register')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('')}"></header>
+<main class="auth-wrap">
+    <div class="card auth-card">
+        <h1>Create an account</h1>
+        <p class="muted">Just your email and a password.</p>
+        <form th:action="@{/register}" th:object="${form}" method="post" novalidate>
+            <div class="alert alert-error" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+            <div class="field" th:classappend="${#fields.hasErrors('email')} ? 'has-error'">
+                <label for="email" class="req">Email</label>
+                <input type="email" th:field="*{email}" autocomplete="username" maxlength="255" autofocus>
+                <span class="hint">You will sign in with this email</span>
+                <span class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
+            </div>
+            <div class="field" th:classappend="${#fields.hasErrors('password')} ? 'has-error'">
+                <label for="password" class="req">Password</label>
+                <input type="password" id="password" name="password" autocomplete="new-password" maxlength="72">
+                <span class="hint">At least 8 characters</span>
+                <span class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></span>
+            </div>
+            <div class="field" th:classappend="${#fields.hasErrors('confirmPassword')} ? 'has-error'">
+                <label for="confirmPassword" class="req">Confirm password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" maxlength="72">
+                <span class="field-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></span>
+            </div>
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
+        <p class="auth-foot">Already have an account? <a th:href="@{/login}">Sign in</a></p>
+    </div>
+</main>
+</body>
+</html>

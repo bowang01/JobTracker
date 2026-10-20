@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  A sortable table header for the application list.
+  label: column title; key: sort key (see ApplicationSearchCriteria.SORT_FIELDS).
+  Clicking POSTs the column to /applications/sort; the server flips the direction of the active column
+  (or switches to this column) and keeps the state in the session, so the URL stays /applications.
+-->
+<th th:fragment="sortable(label, key)"
+    th:with="active=${criteria.sort == key}"
+    th:attr="aria-sort=${active ? (criteria.dir == 'asc' ? 'ascending' : 'descending') : 'none'}">
+    <form class="inline" method="post" th:action="@{/applications/sort}">
+        <input type="hidden" name="key" th:value="${key}">
+        <button type="submit" class="sort-link link-btn" th:classappend="${active} ? 'active'"
+                th:title="${active} ? (${criteria.dir == 'asc'} ? 'Sorted ascending, click for descending' : 'Sorted descending, click for ascending') : 'Click to sort'">
+            <span th:text="${label}">Label</span>
+            <span class="sort-arrow" aria-hidden="true"
+                  th:text="${active} ? (${criteria.dir == 'asc'} ? '▲' : '▼') : '↕'">↕</span>
+        </button>
+    </form>
+</th>
+</body>
+</html>

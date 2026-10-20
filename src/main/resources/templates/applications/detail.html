@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head(${app.company})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('applications')}"></header>
+<main class="page">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+
+    <div class="page-head">
+        <div>
+            <div class="muted"><a th:href="@{/applications}">← Applications</a></div>
+            <h1 th:text="${app.company}">Company</h1>
+            <div class="sub">
+                <span th:text="${app.positionTitle}">Position</span>
+                · <span th:replace="~{fragments/layout :: status(${app.status})}"></span>
+                <span sec:authorize="hasRole('ADMIN')"> · Owner: <a th:href="@{/admin/users/{id}(id=${app.owner.id})}" th:text="${app.owner.email}"></a></span>
+            </div>
+        </div>
+        <div class="actions" sec:authorize="hasRole('USER')">
+            <a class="btn" th:href="@{/applications/{id}/edit(id=${app.id})}">Edit details</a>
+        </div>
+        <div class="actions" sec:authorize="hasRole('ADMIN')">
+            <span class="badge">Read-only admin view</span>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- ================= Left column ================= -->
+        <div class="stack">
+            <section class="card">
+                <h2>Details</h2>
+                <dl class="kv">
+                    <dt>Position</dt><dd th:text="${app.positionTitle}"></dd>
+                    <dt>Location</dt><dd th:text="${app.location ?: '—'}"></dd>
+                    <dt>Source</dt><dd th:text="${app.source ?: '—'}"></dd>
+                    <dt>Applied</dt>
+                    <dd th:text="${app.appliedDate != null} ? ${#temporals.format(app.appliedDate, 'yyyy-MM-dd')} : 'Not yet'"></dd>
+                    <dt>Job link</dt>
+                    <dd>
+                        <a th:if="${app.jobUrl}" th:href="${app.jobUrl}" th:text="${app.jobUrl}"
+                           target="_blank" rel="noopener noreferrer"></a>
+                        <span th:unless="${app.jobUrl}">—</span>
+                    </dd>
+                    <dt>Created / updated</dt>
+                    <dd class="muted"
+                        th:text="${#temporals.format(app.createdAt, 'yyyy-MM-dd HH:mm')} + ' / ' + ${#temporals.format(app.updatedAt, 'yyyy-MM-dd HH:mm')}"></dd>
+                </dl>
+                <div th:if="${app.notes}">
+                    <h3>Notes</h3>
+                    <div class="notes" th:text="${app.notes}"></div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>JD text</h2>
+                <pre class="jd-text" th:if="${app.jdText}" th:text="${app.jdText}"></pre>
+                <p class="muted" th:unless="${app.jdText}">
+                    No JD text saved yet.<span sec:authorize="hasRole('USER')"> <a th:href="@{/applications/{id}/edit(id=${app.id})}">Paste it in</a></span>
+                </p>
+            </section>
+
+            <!-- Interviews -->
+            <section class="card" id="interviews">
+                <h2>Interviews <span class="section-note" th:text="${#lists.size(d.interviews())} + ' round(s)'"></span></h2>
+                <p class="muted" th:if="${#lists.isEmpty(d.interviews())}">No interviews recorded yet.</p>
+
+                <div class="interview" th:each="i : ${d.interviews()}">
+                    <div class="interview-head">
+                        <div>
+                            <span class="round" th:text="'Round ' + ${i.roundNumber}"></span>
+                            · <span th:text="${i.interviewType.label}"></span>
+                            · <span class="badge" th:classappend="${i.outcome.css}" th:text="${i.outcome.label}"></span>
+                        </div>
+                        <div class="actions" sec:authorize="hasRole('USER')">
+                            <a class="btn btn-sm" th:href="@{/applications/{a}/interviews/{i}/edit(a=${app.id},i=${i.id})}">Edit</a>
+                            <form class="inline" method="post"
+                                  th:action="@{/applications/{a}/interviews/{i}/delete(a=${app.id},i=${i.id})}"
+                                  th:attr="data-confirm='Delete the round ' + ${i.roundNumber} + ' interview?'">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="muted">
+                        <span th:if="${i.scheduledAt}" th:text="${#temporals.format(i.scheduledAt, 'yyyy-MM-dd HH:mm')}"></span>
+                        <span th:unless="${i.scheduledAt}">Time not set</span>
+                        <span th:if="${i.durationMinutes}" th:text="' · ' + ${i.durationMinutes} + ' min'"></span>
+                        <span th:if="${i.interviewer}" th:text="' · Interviewer: ' + ${i.interviewer}"></span>
+                        <span th:if="${i.location}" th:text="' · ' + ${i.location}"></span>
+                    </div>
+                    <div class="notes" th:if="${i.notes}" th:text="${i.notes}"></div>
+                </div>
+
+                <details class="add-box" th:open="${interviewFormOpen}" sec:authorize="hasRole('USER')">
+                    <summary>+ Add interview</summary>
+                    <form method="post" th:action="@{/applications/{id}/interviews(id=${app.id})}"
+                          th:object="${interviewForm}" novalidate>
+                        <div th:replace="~{interviews/fields :: fields}"></div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save interview</button>
+                        </div>
+                    </form>
+                </details>
+            </section>
+        </div>
+
+        <!-- ================= Right column ================= -->
+        <div class="stack">
+            <!-- Status -->
+            <section class="card" id="status">
+                <h2>Status &amp; history</h2>
+                <form method="post" th:action="@{/applications/{id}/status(id=${app.id})}" sec:authorize="hasRole('USER')"
+                      th:object="${statusForm}" novalidate>
+                    <div class="alert alert-error" th:each="err : ${#fields.globalErrors()}" th:text="${err}"></div>
+                    <div class="form-grid">
+                        <div class="field" th:classappend="${#fields.hasErrors('toStatus')} ? 'has-error'">
+                            <label for="toStatus" class="req">New status</label>
+                            <select th:field="*{toStatus}">
+                                <option value="">Choose...</option>
+                                <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}"></option>
+                            </select>
+                            <span class="field-error" th:if="${#fields.hasErrors('toStatus')}" th:errors="*{toStatus}"></span>
+                        </div>
+                        <div class="field" th:classappend="${#fields.hasErrors('occurredAt')} ? 'has-error'">
+                            <label for="occurredAt" class="req">When</label>
+                            <input type="datetime-local" th:field="*{occurredAt}">
+                            <span class="field-error" th:if="${#fields.hasErrors('occurredAt')}" th:errors="*{occurredAt}"></span>
+                        </div>
+                        <div class="field full" th:classappend="${#fields.hasErrors('note')} ? 'has-error'">
+                            <label for="note">Note</label>
+                            <input type="text" th:field="*{note}" maxlength="1000" placeholder="e.g. HR emailed an assessment invite">
+                            <span class="field-error" th:if="${#fields.hasErrors('note')}" th:errors="*{note}"></span>
+                        </div>
+                        <label class="check full">
+                            <input type="checkbox" th:field="*{historyOnly}">
+                            <span>Backfill history only (don't change the current status)<br><small>For an earlier event you forgot to record, e.g. last week's assessment.</small></span>
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update status</button>
+                    </div>
+                </form>
+
+                <h3 class="muted">History</h3>
+                <ol class="timeline">
+                    <li th:each="h : ${d.timeline()}">
+                        <div>
+                            <span th:if="${h.fromStatus}">
+                                <span th:text="${h.fromStatus.label}"></span> →
+                            </span>
+                            <span th:replace="~{fragments/layout :: status(${h.toStatus})}"></span>
+                            <span class="tag-backfill" th:if="${h.backfilled}">backfilled</span>
+                        </div>
+                        <div class="meta">
+                            Happened <span th:text="${#temporals.format(h.occurredAt, 'yyyy-MM-dd HH:mm')}"></span>
+                            <span th:if="${h.backfilled}"> · recorded <span th:text="${#temporals.format(h.recordedAt, 'yyyy-MM-dd HH:mm')}"></span></span>
+                            <span th:if="${h.changedBy}"> · <span th:text="${h.changedBy.email}"></span></span>
+                        </div>
+                        <div th:if="${h.note}" th:text="${h.note}"></div>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- Documents -->
+            <section class="card" id="documents">
+                <h2>Documents</h2>
+                <div class="doc-group" th:each="t : ${documentTypes}">
+                    <h3 th:text="${t.label}">Type</h3>
+                    <p class="muted" th:if="${#lists.isEmpty(d.documentsByType().get(t))}">Not uploaded</p>
+                    <div class="doc-row" th:each="doc, st : ${d.documentsByType().get(t)}"
+                         th:classappend="${!st.first} ? 'old'">
+                        <div>
+                            <span class="ver" th:text="'v' + ${doc.versionNo}"></span>
+                            <a class="name" th:href="@{/documents/{id}/download(id=${doc.id})}" th:text="${doc.originalFilename}"></a>
+                            <span class="latest" th:if="${st.first}">current</span>
+                            <div class="muted">
+                                <span th:text="${doc.humanSize}"></span> ·
+                                <span th:text="${#temporals.format(doc.uploadedAt, 'yyyy-MM-dd HH:mm')}"></span>
+                            </div>
+                        </div>
+                        <form class="inline" method="post" th:action="@{/documents/{id}/delete(id=${doc.id})}" sec:authorize="hasRole('USER')"
+                              th:attr="data-confirm=${st.size == 1}
+                                ? 'This is the only version of this document and cannot be recovered once deleted. Delete it?'
+                                : 'Delete v' + ${doc.versionNo} + '? The other versions are kept.'">
+                            <button type="submit" class="btn-link danger">Delete</button>
+                        </form>
+                    </div>
+                </div>
+
+                <details class="add-box" open sec:authorize="hasRole('USER')">
+                    <summary>Upload a document</summary>
+                    <!-- The CSRF token is also in the URL: if an oversized body cannot be parsed, CSRF still passes and a friendly message is shown -->
+                    <form method="post" enctype="multipart/form-data"
+                          th:action="@{/applications/{id}/documents(id=${app.id},_csrf=${_csrf.token})}">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="doc-type" class="req">Type</label>
+                                <select id="doc-type" name="type">
+                                    <option th:each="t : ${documentTypes}" th:value="${t}" th:text="${t.label}"></option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="doc-file" class="req">File</label>
+                                <input type="file" id="doc-file" name="file" required
+                                       accept=".pdf,.doc,.docx,.txt" th:attr="data-max-bytes=${maxUploadBytes}">
+                            </div>
+                        </div>
+                        <p class="muted"><small>[[${allowedTypes}]], up to [[${maxUploadLabel}]] per file.
+                            Uploading the same type again adds a new version; older versions are never overwritten.</small></p>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </div>
+                    </form>
+                </details>
+            </section>
+
+            <section class="card danger-zone" sec:authorize="hasRole('USER')">
+                <h2>Delete application</h2>
+                <p class="muted">Also deletes the status history, interviews and every uploaded file. This cannot be undone.</p>
+                <form method="post" th:action="@{/applications/{id}/delete(id=${app.id})}"
+                      th:attr="data-confirm='Delete &quot;' + ${app.company} + ' · ' + ${app.positionTitle} + '&quot; and all its documents? This cannot be undone.'">
+                    <button type="submit" class="btn btn-danger">Delete this application</button>
+                </form>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>

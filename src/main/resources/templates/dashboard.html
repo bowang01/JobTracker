@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Dashboard')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('dashboard')}"></header>
+<main class="page">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <h1>Dashboard</h1>
+            <div class="sub">Your job search at a glance (only your own applications)</div>
+        </div>
+        <div class="actions">
+            <a class="btn btn-primary" th:href="@{/applications/new}">+ New application</a>
+        </div>
+    </div>
+
+    <section class="stats">
+        <div class="stat accent">
+            <div class="label">Total applications</div>
+            <div class="value" th:text="${view.total()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Active</div>
+            <div class="value" th:text="${view.active()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Interviewing</div>
+            <div class="value" th:text="${view.interviewing()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Offers / accepted</div>
+            <div class="value" th:text="${view.offers()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Interviews in the next [[${upcomingDays}]] days</div>
+            <div class="value" th:text="${#lists.size(view.upcomingInterviews())}">0</div>
+        </div>
+    </section>
+
+    <div class="grid-2">
+        <div class="stack">
+            <section class="card">
+                <h2>Upcoming interviews <span class="section-note" th:text="'next ' + ${upcomingDays} + ' days'"></span></h2>
+                <p class="muted" th:if="${#lists.isEmpty(view.upcomingInterviews())}">Nothing scheduled.</p>
+                <ul class="list" th:unless="${#lists.isEmpty(view.upcomingInterviews())}">
+                    <li th:each="i : ${view.upcomingInterviews()}">
+                        <div>
+                            <a th:href="@{/applications/{id}(id=${i.application.id})}"
+                               th:text="${i.application.company} + ' · ' + ${i.application.positionTitle}">Company</a>
+                            <div class="muted">Round [[${i.roundNumber}]] · [[${i.interviewType.label}]]</div>
+                        </div>
+                        <span class="when" th:text="${#temporals.format(i.scheduledAt, 'EEE d MMM HH:mm')}"></span>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="card">
+                <h2>Recent interviews <span class="section-note" th:text="'last ' + ${recentDays} + ' days'"></span></h2>
+                <p class="muted" th:if="${#lists.isEmpty(view.recentInterviews())}">No interviews recorded.</p>
+                <ul class="list" th:unless="${#lists.isEmpty(view.recentInterviews())}">
+                    <li th:each="i : ${view.recentInterviews()}">
+                        <div>
+                            <a th:href="@{/applications/{id}(id=${i.application.id})}"
+                               th:text="${i.application.company} + ' · ' + ${i.application.positionTitle}">Company</a>
+                            <div class="muted">Round [[${i.roundNumber}]] · [[${i.interviewType.label}]]
+                                · <span class="badge" th:classappend="${i.outcome.css}" th:text="${i.outcome.label}"></span></div>
+                        </div>
+                        <span class="when" th:text="${#temporals.format(i.scheduledAt, 'd MMM HH:mm')}"></span>
+                    </li>
+                </ul>
+            </section>
+        </div>
+
+        <div class="stack">
+            <section class="card">
+                <h2>By status</h2>
+                <div class="status-bars">
+                    <div class="status-bar" th:each="s : ${statuses}">
+                        <form class="inline" method="post" th:action="@{/applications/filter}">
+                            <button type="submit" class="link-btn" name="status" th:value="${s}" th:text="${s.label}">Status</button>
+                        </form>
+                        <meter class="bar" min="0"
+                               th:max="${view.total() == 0 ? 1 : view.total()}"
+                               th:value="${view.countsByStatus().get(s)}"></meter>
+                        <span class="num" th:text="${view.countsByStatus().get(s)}">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card">
+                <h2>Recently updated</h2>
+                <p class="muted" th:if="${#lists.isEmpty(view.recentApplications())}">
+                    No applications yet. <a th:href="@{/applications/new}">Create your first one</a>.
+                </p>
+                <ul class="list" th:unless="${#lists.isEmpty(view.recentApplications())}">
+                    <li th:each="a : ${view.recentApplications()}">
+                        <div>
+                            <a th:href="@{/applications/{id}(id=${a.id})}" th:text="${a.company}">Company</a>
+                            <div class="muted" th:text="${a.positionTitle}">Position</div>
+                        </div>
+                        <span th:replace="~{fragments/layout :: status(${a.status})}"></span>
+                    </li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Sign in')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('')}"></header>
+<main class="auth-wrap">
+    <div class="card auth-card">
+        <h1>Sign in to JobTrack</h1>
+        <p class="muted">Keep track of every application and every interview.</p>
+
+        <div th:replace="~{fragments/layout :: flash}"></div>
+
+        <form th:action="@{/login}" method="post">
+            <div class="field">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" autocomplete="username" required autofocus>
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Sign in</button>
+        </form>
+        <p class="auth-foot">No account yet? <a th:href="@{/register}">Register</a></p>
+    </div>
+</main>
+</body>
+</html>

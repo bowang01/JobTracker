@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Request could not be completed')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('')}"></header>
+<main class="page">
+    <div class="error-page">
+        <div class="code">!</div>
+        <h1>Request could not be completed</h1>
+        <p class="muted">Please check your input and try again.</p>
+        <p><a class="btn" th:href="@{/dashboard}">Back to dashboard</a></p>
+    </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${u.user().email})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('admin-users')}"></header>
+<main class="page" th:with="user=${u.user()}">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <div class="muted"><a th:href="@{/admin/users}">← Users</a></div>
+            <h1 th:text="${user.email}">email</h1>
+            <div class="sub">
+                <span class="badge" th:classappend="${user.enabled} ? 's-offer' : 's-rejected'"
+                      th:text="${user.enabled} ? 'Active' : 'Disabled'"></span>
+                <span th:if="${user.displayName}" th:text="' · ' + ${user.displayName}"></span>
+            </div>
+        </div>
+        <div class="actions">
+            <form class="inline" method="post" th:action="@{/admin/users/{id}/enabled(id=${user.id})}">
+                <input type="hidden" name="enabled" th:value="${!user.enabled}">
+                <input type="hidden" name="back" value="detail">
+                <button type="submit" class="btn" th:text="${user.enabled} ? 'Disable account' : 'Enable account'"></button>
+            </form>
+            <form class="inline" method="post" th:action="@{/admin/users/{id}/delete(id=${user.id})}"
+                  th:attr="data-confirm='Delete ' + ${user.email} + ' and all ' + ${u.applicationCount()} + ' of their applications and documents? This cannot be undone.'">
+                <button type="submit" class="btn btn-danger">Delete user</button>
+            </form>
+        </div>
+    </div>
+
+    <section class="stats">
+        <div class="stat accent">
+            <div class="label">Applications</div>
+            <div class="value" th:text="${u.applicationCount()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Interviews</div>
+            <div class="value" th:text="${u.interviewCount()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Documents</div>
+            <div class="value" th:text="${u.documentCount()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Storage used</div>
+            <div class="value" th:text="${u.storageLabel}">0 B</div>
+        </div>
+        <div class="stat">
+            <div class="label"><form class="inline" method="post" th:action="@{/admin/questions/filter}">
+                <button type="submit" class="link-btn" name="ownerId" th:value="${user.id}">Interview questions</button></form></div>
+            <div class="value" th:text="${u.questionCount()}">0</div>
+        </div>
+    </section>
+
+    <div class="grid-2">
+        <section class="card card-flush">
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Company / position</th>
+                        <th>Status</th>
+                        <th>Applied</th>
+                        <th>Last updated</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(u.applications())}">
+                        <td colspan="4" class="empty">This user has no applications yet.</td>
+                    </tr>
+                    <tr th:each="a : ${u.applications()}">
+                        <td>
+                            <a class="primary" th:href="@{/applications/{id}(id=${a.id})}" th:text="${a.company}">Company</a>
+                            <div class="secondary" th:text="${a.positionTitle}">Position</div>
+                        </td>
+                        <td><span th:replace="~{fragments/layout :: status(${a.status})}"></span></td>
+                        <td th:text="${a.appliedDate != null} ? ${#temporals.format(a.appliedDate, 'yyyy-MM-dd')} : '—'">—</td>
+                        <td class="secondary" th:text="${#temporals.format(a.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div class="stack">
+            <section class="card">
+                <h2>Account</h2>
+                <dl class="kv">
+                    <dt>Email</dt><dd th:text="${user.email}"></dd>
+                    <dt>Name</dt><dd th:text="${user.displayName ?: '—'}"></dd>
+                    <dt>Registered</dt><dd th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd HH:mm')}"></dd>
+                    <dt>Last sign-in</dt>
+                    <dd th:text="${user.lastLoginAt != null} ? ${#temporals.format(user.lastLoginAt, 'yyyy-MM-dd HH:mm')} : 'Never'"></dd>
+                </dl>
+            </section>
+
+            <section class="card">
+                <h2>By status</h2>
+                <div class="status-bars">
+                    <div class="status-bar" th:each="s : ${statuses}">
+                        <span th:text="${s.label}">Status</span>
+                        <meter class="bar" min="0"
+                               th:max="${u.applicationCount() == 0 ? 1 : u.applicationCount()}"
+                               th:value="${u.applicationsByStatus().get(s)}"></meter>
+                        <span class="num" th:text="${u.applicationsByStatus().get(s)}">0</span>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>
+</body>
+</html>

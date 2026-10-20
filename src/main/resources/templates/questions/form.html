@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${editing} ? 'Edit question' : 'Add question')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('questions')}"></header>
+<main class="page page-narrow">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <div class="muted"><a th:href="@{/questions}">← Interview questions</a></div>
+            <h1 th:text="${editing} ? 'Edit question' : 'Add question'">Add question</h1>
+        </div>
+    </div>
+
+    <form class="card" method="post" th:object="${form}" novalidate
+          th:action="${editing} ? @{/questions/{id}(id=${question.id})} : @{/questions}">
+        <div class="alert alert-error" th:if="${#fields.hasErrors('*')}">Please fix the highlighted fields.</div>
+
+        <div class="form-grid">
+            <div class="field full" th:classappend="${#fields.hasErrors('category')} ? 'has-error'">
+                <span class="label req">Type</span>
+                <div class="radio-row">
+                    <label class="radio" th:each="c : ${categories}">
+                        <input type="radio" th:field="*{category}" th:value="${c}">
+                        <span th:text="${c.label}">Technical</span>
+                    </label>
+                </div>
+                <span class="hint">Technical: coding, system design, CS fundamentals. Behavioral: teamwork, conflict, motivation ("Tell me about a time...").</span>
+                <span class="field-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></span>
+            </div>
+            <div class="field full" th:classappend="${#fields.hasErrors('questionText')} ? 'has-error'">
+                <label for="questionText" class="req">Question</label>
+                <textarea th:field="*{questionText}" maxlength="5000" autofocus
+                          placeholder="e.g. Explain the difference between a process and a thread."></textarea>
+                <span class="field-error" th:if="${#fields.hasErrors('questionText')}" th:errors="*{questionText}"></span>
+            </div>
+            <div class="field full" th:classappend="${#fields.hasErrors('answerText')} ? 'has-error'">
+                <label for="answerText">My answer <span class="muted">(always private)</span></label>
+                <textarea th:field="*{answerText}" class="tall" maxlength="10000"
+                          placeholder="How you answered, or a better answer. For behavioral questions, STAR works well: Situation, Task, Action, Result."></textarea>
+                <span class="field-error" th:if="${#fields.hasErrors('answerText')}" th:errors="*{answerText}"></span>
+            </div>
+            <div class="field full" th:classappend="${#fields.hasErrors('visibility')} ? 'has-error'">
+                <span class="label req">Who can see this question?</span>
+                <div class="radio-col">
+                    <label class="radio" th:each="v : ${visibilities}">
+                        <input type="radio" th:field="*{visibility}" th:value="${v}">
+                        <span><strong th:text="${v.label}">Private</strong> · <span class="muted" th:text="${v.description}"></span></span>
+                    </label>
+                </div>
+                <span class="hint">Your answer and "How did I do?" are never shared. Only the question text and its type appear in the hall, without your name.</span>
+                <span class="field-error" th:if="${#fields.hasErrors('visibility')}" th:errors="*{visibility}"></span>
+            </div>
+            <div class="field">
+                <label for="selfRating">How did I do?</label>
+                <select th:field="*{selfRating}">
+                    <option value="">Not rated</option>
+                    <option th:each="r : ${ratings}" th:value="${r}" th:text="${r.label}"></option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary" th:text="${editing} ? 'Save changes' : 'Save question'">Save</button>
+            <button type="submit" class="btn" name="another" value="1" th:unless="${editing}">Save and add another</button>
+            <a class="btn" th:href="@{/questions}">Cancel</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>

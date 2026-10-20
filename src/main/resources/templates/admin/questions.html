@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('All questions')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('admin-questions')}"></header>
+<main class="page">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <h1>Interview questions</h1>
+            <div class="sub">
+                <strong th:text="${page.totalElements}">0</strong> question(s) from all users, public and private.
+                Answers and self-ratings are private to each user and are not shown here.
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" th:if="${owner != null}">
+        Showing questions from <a th:href="@{/admin/users/{id}(id=${owner.id})}" th:text="${owner.email}"></a> only.
+        <form class="inline" method="post" th:action="@{/admin/questions/filter}">
+            <input type="hidden" name="category" th:value="${category}">
+            <input type="hidden" name="visibility" th:value="${visibility}">
+            <input type="hidden" name="q" th:value="${q}">
+            <button type="submit" class="link-btn">Show all users</button>
+        </form>
+    </div>
+
+    <section class="card">
+        <form th:action="@{/admin/questions/filter}" method="post" class="filters">
+            <input type="hidden" name="ownerId" th:if="${ownerId != null}" th:value="${ownerId}">
+            <div class="field">
+                <label for="q">Search</label>
+                <input type="text" id="q" name="q" th:value="${q}" placeholder="Question text or user email">
+            </div>
+            <div class="field">
+                <label for="category">Type</label>
+                <select id="category" name="category">
+                    <option value="">All types</option>
+                    <option th:each="c : ${categories}" th:value="${c}" th:text="${c.label}"
+                            th:selected="${c == category}"></option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="visibility">Visibility</label>
+                <select id="visibility" name="visibility">
+                    <option value="">Public and private</option>
+                    <option th:each="v : ${visibilities}" th:value="${v}" th:text="${v.label}"
+                            th:selected="${v == visibility}"></option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="submit" class="btn" th:formaction="@{/admin/questions/reset}">Reset</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card card-flush">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th>Question</th>
+                    <th>Type</th>
+                    <th>Visibility</th>
+                    <th>User</th>
+                    <th>Added</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${page.empty}">
+                    <td colspan="6" class="empty">No questions match.</td>
+                </tr>
+                <tr th:each="item : ${page.content}">
+                    <td class="q-cell" th:text="${item.questionText()}">Question</td>
+                    <td><span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span></td>
+                    <td>
+                        <span class="badge vis-public" th:if="${item.isPublic()}">Public</span>
+                        <span class="badge vis-private" th:unless="${item.isPublic()}">Private</span>
+                    </td>
+                    <td><a th:href="@{/admin/users/{id}(id=${item.ownerId()})}" th:text="${item.ownerEmail()}"></a></td>
+                    <td class="secondary" th:text="${#temporals.format(item.createdAt(), 'yyyy-MM-dd')}"></td>
+                    <td>
+                        <form class="inline" method="post" th:if="${item.isPublic()}"
+                              th:action="@{/hall/{id}/unpublish(id=${item.id()})}"
+                              data-confirm="Remove this question from the interview hall? It will become private to its owner.">
+                            <input type="hidden" name="back" value="admin">
+                            <button type="submit" class="btn btn-sm btn-danger">Remove from hall</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pager" th:if="${page.totalPages > 1}">
+            <span th:text="'Page ' + ${page.number + 1} + ' of ' + ${page.totalPages}"></span>
+            <form class="actions" method="post" th:action="@{/admin/questions/page}">
+                <button type="submit" class="btn btn-sm" name="page" th:if="${page.hasPrevious()}"
+                        th:value="${page.number - 1}">Previous</button>
+                <button type="submit" class="btn btn-sm" name="page" th:if="${page.hasNext()}"
+                        th:value="${page.number + 1}">Next</button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>

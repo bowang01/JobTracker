@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Admin overview')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('admin-overview')}"></header>
+<main class="page">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <h1>Overview</h1>
+            <div class="sub">How regular users are using JobTrack</div>
+        </div>
+        <div class="actions">
+            <a class="btn btn-primary" th:href="@{/admin/users}">Manage users</a>
+        </div>
+    </div>
+
+    <h2>Users</h2>
+    <section class="stats">
+        <div class="stat accent">
+            <div class="label">Registered users</div>
+            <div class="value" th:text="${o.totalUsers()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Active accounts</div>
+            <div class="value" th:text="${o.enabledUsers()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Disabled accounts</div>
+            <div class="value" th:text="${o.disabledUsers()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">New in the last [[${recentDays}]] days</div>
+            <div class="value" th:text="${o.newUsersRecent()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Signed in within [[${activeDays}]] days</div>
+            <div class="value" th:text="${o.activeUsers()}">0</div>
+        </div>
+    </section>
+
+    <h2>Activity</h2>
+    <section class="stats">
+        <div class="stat">
+            <div class="label">Applications</div>
+            <div class="value" th:text="${o.totalApplications()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">New applications ([[${recentDays}]] days)</div>
+            <div class="value" th:text="${o.newApplicationsRecent()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Interviews in the next [[${upcomingDays}]] days</div>
+            <div class="value" th:text="${o.upcomingInterviews()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">Documents</div>
+            <div class="value" th:text="${o.documentCount()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label">File storage used</div>
+            <div class="value" th:text="${o.storageLabel}">0 B</div>
+        </div>
+        <div class="stat">
+            <div class="label"><form class="inline" method="post" th:action="@{/admin/questions/reset}">
+                <button type="submit" class="link-btn">Interview questions</button></form></div>
+            <div class="value" th:text="${o.totalQuestions()}">0</div>
+        </div>
+        <div class="stat">
+            <div class="label"><form class="inline" method="post" th:action="@{/admin/questions/filter}">
+                <button type="submit" class="link-btn" name="visibility" value="PUBLIC">Public in the hall</button></form></div>
+            <div class="value" th:text="${o.publicQuestions()}">0</div>
+        </div>
+    </section>
+
+    <div class="grid-2">
+        <div class="stack">
+            <section class="card">
+                <h2>Recent registrations</h2>
+                <p class="muted" th:if="${#lists.isEmpty(o.recentRegistrations())}">No users yet.</p>
+                <ul class="list" th:unless="${#lists.isEmpty(o.recentRegistrations())}">
+                    <li th:each="r : ${o.recentRegistrations()}">
+                        <div>
+                            <a th:href="@{/admin/users/{id}(id=${r.user().id})}" th:text="${r.user().email}">email</a>
+                            <div class="muted">
+                                <span th:text="${r.applicationCount()} + ' application(s)'"></span>
+                                <span th:unless="${r.user().enabled}"> · disabled</span>
+                            </div>
+                        </div>
+                        <span class="when" th:text="${#temporals.format(r.user().createdAt, 'yyyy-MM-dd')}"></span>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="card">
+                <h2>Most active users <span class="section-note">by number of applications</span></h2>
+                <p class="muted" th:if="${#lists.isEmpty(o.mostActiveUsers())}">No applications yet.</p>
+                <ul class="list" th:unless="${#lists.isEmpty(o.mostActiveUsers())}">
+                    <li th:each="r : ${o.mostActiveUsers()}">
+                        <a th:href="@{/admin/users/{id}(id=${r.user().id})}" th:text="${r.user().email}">email</a>
+                        <span class="when" th:text="${r.applicationCount()}">0</span>
+                    </li>
+                </ul>
+            </section>
+        </div>
+
+        <section class="card">
+            <h2>Applications by status <span class="section-note">all users</span></h2>
+            <div class="status-bars">
+                <div class="status-bar" th:each="s : ${statuses}">
+                    <form class="inline" method="post" th:action="@{/applications/filter}">
+                        <button type="submit" class="link-btn" name="status" th:value="${s}" th:text="${s.label}">Status</button>
+                    </form>
+                    <meter class="bar" min="0"
+                           th:max="${o.totalApplications() == 0 ? 1 : o.totalApplications()}"
+                           th:value="${o.applicationsByStatus().get(s)}"></meter>
+                    <span class="num" th:text="${o.applicationsByStatus().get(s)}">0</span>
+                </div>
+            </div>
+        </section>
+    </div>
+</main>
+</body>
+</html>

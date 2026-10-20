@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' · JobTrack'">JobTrack</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+
+<header th:fragment="nav(active)" class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" th:href="@{/dashboard}">JobTrack</a>
+        <nav class="mainnav" sec:authorize="hasRole('USER')">
+            <a th:href="@{/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">Dashboard</a>
+            <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">Applications</a>
+            <a th:href="@{/applications/new}" th:classappend="${active == 'new'} ? 'active'">New application</a>
+            <a th:href="@{/questions}" th:classappend="${active == 'questions'} ? 'active'">My questions</a>
+            <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">Interview hall</a>
+        </nav>
+        <nav class="mainnav" sec:authorize="hasRole('ADMIN')">
+            <a th:href="@{/admin}" th:classappend="${active == 'admin-overview'} ? 'active'">Overview</a>
+            <a th:href="@{/admin/users}" th:classappend="${active == 'admin-users'} ? 'active'">Users</a>
+            <a th:href="@{/admin/questions}" th:classappend="${active == 'admin-questions'} ? 'active'">Questions</a>
+            <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">All applications</a>
+            <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">Interview hall</a>
+        </nav>
+        <div class="usermenu" sec:authorize="isAuthenticated()">
+            <span sec:authorize="hasRole('ADMIN')" class="role-tag">ADMIN</span>
+            <a th:href="@{/profile}" sec:authentication="name">user</a>
+            <form th:action="@{/logout}" method="post" class="inline">
+                <button type="submit" class="btn-link">Sign out</button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<div th:fragment="flash">
+    <div class="alert alert-success" th:if="${success}" th:text="${success}">ok</div>
+    <div class="alert alert-error" th:if="${error}" th:text="${error}">error</div>
+    <div class="alert alert-info" th:if="${info}" th:text="${info}">info</div>
+    <!-- After a redirect, scroll to this section (instead of putting a #fragment in the URL) -->
+    <span hidden th:if="${scrollTo}" id="scroll-target" th:attr="data-target=${scrollTo}"></span>
+</div>
+
+<span th:fragment="status(s)" class="badge" th:classappend="${s.css}" th:text="${s.label}">Status</span>
+
+</body>
+</html>

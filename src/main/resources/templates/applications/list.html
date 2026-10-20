@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Applications')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('applications')}"></header>
+<main class="page">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <h1 sec:authorize="hasRole('USER')">Applications</h1>
+            <h1 sec:authorize="hasRole('ADMIN')">All applications</h1>
+            <div class="sub">
+                <strong th:text="${page.totalElements}">0</strong> in total
+                <span th:if="${criteria.filtered}">(filtered)</span>
+                <span sec:authorize="hasRole('ADMIN')" th:if="${criteria.ownerId == null}"> · Admin view: showing all users</span>
+            </div>
+        </div>
+        <div class="actions">
+            <a class="btn btn-primary" sec:authorize="hasRole('USER')" th:href="@{/applications/new}">+ New application</a>
+        </div>
+    </div>
+
+    <section class="card">
+        <!-- POST + redirect: the filters are kept in the session, so the address bar stays /applications -->
+        <form th:action="@{/applications/filter}" method="post" th:object="${criteria}" class="filters">
+            <div class="field">
+                <label for="company">Company</label>
+                <input type="text" th:field="*{company}" placeholder="Company keyword">
+            </div>
+            <div class="field">
+                <label for="position">Position</label>
+                <input type="text" th:field="*{position}" placeholder="Position keyword">
+            </div>
+            <div class="field">
+                <label for="status">Status</label>
+                <select th:field="*{status}">
+                    <option value="">All statuses</option>
+                    <option th:each="s : ${statuses}" th:value="${s}" th:text="${s.label}"></option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="appliedFrom">Applied from</label>
+                <input type="date" th:field="*{appliedFrom}">
+            </div>
+            <div class="field">
+                <label for="appliedTo">Applied to</label>
+                <input type="date" th:field="*{appliedTo}">
+            </div>
+            <div class="field" sec:authorize="hasRole('ADMIN')">
+                <label for="ownerId">User</label>
+                <select th:field="*{ownerId}">
+                    <option value="">All users</option>
+                    <option th:each="u : ${users}" th:value="${u.id}" th:text="${u.email}"></option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Filter</button>
+                <button type="submit" class="btn" th:formaction="@{/applications/reset}">Reset</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card card-flush">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th th:replace="~{fragments/sort :: sortable('Company / position', 'company')}"></th>
+                    <th>Status</th>
+                    <th th:replace="~{fragments/sort :: sortable('Applied', 'applied')}"></th>
+                    <th>Location / source</th>
+                    <th sec:authorize="hasRole('ADMIN')">User</th>
+                    <th th:replace="~{fragments/sort :: sortable('Last updated', 'updated')}"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${page.empty}">
+                    <td colspan="6" class="empty">
+                        <span th:if="${criteria.filtered}">No applications match these filters.</span>
+                        <span th:unless="${criteria.filtered}">No applications yet.<span sec:authorize="hasRole('USER')"> <a th:href="@{/applications/new}">Add one</a>.</span></span>
+                    </td>
+                </tr>
+                <tr th:each="a : ${page.content}">
+                    <td>
+                        <a class="primary" th:href="@{/applications/{id}(id=${a.id})}" th:text="${a.company}">Company</a>
+                        <div class="secondary" th:text="${a.positionTitle}">Position</div>
+                    </td>
+                    <td><span th:replace="~{fragments/layout :: status(${a.status})}"></span></td>
+                    <td th:text="${a.appliedDate != null} ? ${#temporals.format(a.appliedDate, 'yyyy-MM-dd')} : '—'">—</td>
+                    <td>
+                        <div th:text="${a.location ?: '—'}"></div>
+                        <div class="secondary" th:if="${a.source}" th:text="${a.source}"></div>
+                    </td>
+                    <td sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/users/{id}(id=${a.owner.id})}" th:text="${a.owner.email}">user</a></td>
+                    <td class="secondary" th:text="${#temporals.format(a.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pager" th:if="${page.totalPages > 1}">
+            <span th:text="'Page ' + ${page.number + 1} + ' of ' + ${page.totalPages}"></span>
+            <form class="actions" method="post" th:action="@{/applications/page}">
+                <button type="submit" class="btn btn-sm" name="page" th:if="${page.hasPrevious()}"
+                        th:value="${page.number - 1}">Previous</button>
+                <button type="submit" class="btn btn-sm" name="page" th:if="${page.hasNext()}"
+                        th:value="${page.number + 1}">Next</button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>

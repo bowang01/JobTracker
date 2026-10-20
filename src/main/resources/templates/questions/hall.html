@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Interview hall')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('hall')}"></header>
+<main class="page">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <h1>Interview hall</h1>
+            <div class="sub" sec:authorize="hasRole('USER')">Questions other job seekers have shared. Only the questions are public; everyone's answers stay private.</div>
+            <div class="sub" sec:authorize="hasRole('ADMIN')">Admin view: every question from every user, public and private. Answers and self-ratings are private to each user and are not shown.</div>
+        </div>
+        <div class="actions" sec:authorize="hasRole('USER')">
+            <a class="btn" th:href="@{/questions}">My questions</a>
+            <form class="inline" method="post" th:action="@{/questions/share}">
+                <button type="submit" class="btn btn-primary">+ Share a question</button>
+            </form>
+        </div>
+    </div>
+
+    <form class="tabs" aria-label="Question type" method="post" th:action="@{/hall/tab}">
+        <button type="submit" name="category" value="" th:classappend="${category == null} ? 'active'">
+            All <span class="tab-count" th:text="${counts.total()}">0</span></button>
+        <button type="submit" name="category" value="TECHNICAL"
+                th:classappend="${category != null and category.name() == 'TECHNICAL'} ? 'active'">
+            Technical <span class="tab-count" th:text="${counts.technical()}">0</span></button>
+        <button type="submit" name="category" value="BEHAVIORAL"
+                th:classappend="${category != null and category.name() == 'BEHAVIORAL'} ? 'active'">
+            Behavioral <span class="tab-count" th:text="${counts.behavioral()}">0</span></button>
+    </form>
+
+    <section class="card">
+        <form th:action="@{/hall/filter}" method="post" class="filters">
+            <div class="field">
+                <label for="q">Search</label>
+                <input type="text" id="q" name="q" th:value="${q}" placeholder="Words in the question">
+            </div>
+            <div class="field" sec:authorize="hasRole('ADMIN')">
+                <label for="visibility">Visibility</label>
+                <select id="visibility" name="visibility">
+                    <option value="">Public and private</option>
+                    <option th:each="v : ${visibilities}" th:value="${v}" th:text="${v.label}"
+                            th:selected="${v == visibility}"></option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">Search</button>
+                <button type="submit" class="btn" th:formaction="@{/hall/reset}">Reset</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <p class="empty" th:if="${page.empty}">
+            <span th:if="${counts.total() == 0}" sec:authorize="hasRole('USER')">No public questions yet. Make one of your questions public to share it here.</span>
+            <span th:if="${counts.total() == 0}" sec:authorize="hasRole('ADMIN')">No users have added any questions yet.</span>
+            <span th:unless="${counts.total() == 0}">No questions match.</span>
+        </p>
+
+        <article class="q-item" th:each="item : ${page.content}">
+            <div class="q-meta">
+                <span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span>
+                <span class="hall-meta" sec:authorize="hasRole('USER')" th:text="'Shared ' + ${#temporals.format(item.shownDate(), 'd MMM yyyy')}"></span>
+                <th:block sec:authorize="hasRole('ADMIN')">
+                    <span class="badge vis-public" th:if="${item.isPublic()}">Public</span>
+                    <span class="badge vis-private" th:unless="${item.isPublic()}">Private</span>
+                    <a th:href="@{/admin/users/{id}(id=${item.ownerId()})}" th:text="${item.ownerEmail()}"></a>
+                    <span class="hall-meta" th:text="${#temporals.format(item.shownDate(), 'd MMM yyyy')}"></span>
+                </th:block>
+                <span class="q-actions">
+                    <span class="badge vis-public" th:if="${item.mine()}">Yours</span>
+                    <a class="btn btn-sm" th:if="${item.mine()}" sec:authorize="hasRole('USER')"
+                       th:href="@{/questions/{id}/edit(id=${item.id()})}">Edit</a>
+                    <form class="inline" method="post" th:unless="${item.mine()}" sec:authorize="hasRole('USER')"
+                          th:action="@{/hall/{id}/copy(id=${item.id()})}">
+                        <button type="submit" class="btn btn-sm">+ Add to my questions</button>
+                    </form>
+                    <form class="inline" method="post" sec:authorize="hasRole('ADMIN')" th:if="${item.isPublic()}"
+                          th:action="@{/hall/{id}/unpublish(id=${item.id()})}"
+                          data-confirm="Remove this question from the interview hall? It will become private to its owner.">
+                        <button type="submit" class="btn btn-sm btn-danger">Remove from hall</button>
+                    </form>
+                </span>
+            </div>
+            <div class="q-text" th:text="${item.questionText()}">Question</div>
+        </article>
+
+        <div class="pager" th:if="${page.totalPages > 1}">
+            <span th:text="'Page ' + ${page.number + 1} + ' of ' + ${page.totalPages}"></span>
+            <form class="actions" method="post" th:action="@{/hall/page}">
+                <button type="submit" class="btn btn-sm" name="page" th:if="${page.hasPrevious()}"
+                        th:value="${page.number - 1}">Previous</button>
+                <button type="submit" class="btn btn-sm" name="page" th:if="${page.hasNext()}"
+                        th:value="${page.number + 1}">Next</button>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>

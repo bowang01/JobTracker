@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Profile')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('profile')}"></header>
+<main class="page page-narrow">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <h1>Profile</h1>
+            <div class="sub">
+                <strong th:text="${user.email}"></strong> · <span th:text="${user.role.label}"></span>
+                · Joined <span th:text="${#temporals.format(user.createdAt, 'yyyy-MM-dd')}"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="stack">
+        <form class="card" method="post" th:action="@{/profile}" th:object="${profileForm}" novalidate>
+            <h2>Details</h2>
+            <div class="form-grid">
+                <div class="field" th:classappend="${#fields.hasErrors('displayName')} ? 'has-error'">
+                    <label for="displayName">Display name</label>
+                    <input type="text" th:field="*{displayName}" maxlength="100">
+                    <span class="field-error" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></span>
+                </div>
+                <div class="field" th:classappend="${#fields.hasErrors('email')} ? 'has-error'">
+                    <label for="email" class="req">Email (used to sign in)</label>
+                    <input type="email" th:field="*{email}" maxlength="255">
+                    <span class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save details</button>
+            </div>
+        </form>
+
+        <form class="card" method="post" th:action="@{/profile/password}" th:object="${passwordForm}" novalidate>
+            <h2>Change password</h2>
+            <div class="form-grid">
+                <div class="field full" th:classappend="${#fields.hasErrors('currentPassword')} ? 'has-error'">
+                    <label for="currentPassword" class="req">Current password</label>
+                    <input type="password" id="currentPassword" name="currentPassword" autocomplete="current-password">
+                    <span class="field-error" th:if="${#fields.hasErrors('currentPassword')}" th:errors="*{currentPassword}"></span>
+                </div>
+                <div class="field" th:classappend="${#fields.hasErrors('newPassword')} ? 'has-error'">
+                    <label for="newPassword" class="req">New password</label>
+                    <input type="password" id="newPassword" name="newPassword" autocomplete="new-password" maxlength="72">
+                    <span class="field-error" th:if="${#fields.hasErrors('newPassword')}" th:errors="*{newPassword}"></span>
+                </div>
+                <div class="field" th:classappend="${#fields.hasErrors('confirmPassword')} ? 'has-error'">
+                    <label for="confirmPassword" class="req">Confirm new password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" autocomplete="new-password" maxlength="72">
+                    <span class="field-error" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></span>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Change password</button>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

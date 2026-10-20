@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Access denied')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('')}"></header>
+<main class="page">
+    <div class="error-page">
+        <div class="code">403</div>
+        <h1>Access denied</h1>
+        <p class="muted">This page is for administrators only. If you just submitted a form, the page may have been open too long; refresh and try again.</p>
+        <p><a class="btn" th:href="@{/dashboard}">Back to dashboard</a></p>
+    </div>
+</main>
+</body>
+</html>

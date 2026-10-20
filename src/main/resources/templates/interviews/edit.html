@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Edit interview')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav('applications')}"></header>
+<main class="page page-narrow">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="page-head">
+        <div>
+            <div class="muted">
+                <a th:href="@{/applications/{id}(id=${app.id})}" th:text="'← ' + ${app.company} + ' · ' + ${app.positionTitle}"></a>
+            </div>
+            <h1 th:text="'Edit round ' + ${interview.roundNumber} + ' interview'">Edit interview</h1>
+        </div>
+    </div>
+    <form class="card" method="post" novalidate th:object="${interviewForm}"
+          th:action="@{/applications/{a}/interviews/{i}(a=${app.id},i=${interview.id})}">
+        <div class="alert alert-error" th:if="${#fields.hasErrors('*')}">Please fix the highlighted fields.</div>
+        <div th:replace="~{interviews/fields :: fields}"></div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a class="btn" th:href="@{/applications/{id}(id=${app.id})}">Cancel</a>
+        </div>
+    </form>
+</main>
+</body>
+</html>
