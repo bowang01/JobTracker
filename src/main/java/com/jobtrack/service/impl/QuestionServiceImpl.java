@@ -33,7 +33,7 @@ import com.jobtrack.service.Text;
  * independent of applications and interview rounds.
  * <ul>
  *   <li>Private questions (the default): only the owner can see them; anyone else gets 404.</li>
- *   <li>Public questions: listed in the interview hall for every signed-in user, showing only the
+ *   <li>Public questions: listed in the interview hall for everyone, including visitors who are not signed in, showing only the
  *       question itself (see {@link PublicQuestion}). The answer and self-rating always stay private.</li>
  *   <li>Admins can see every question, public or private, with its owner (in the interview hall and on
  *       the admin Questions page), but never answers or self-ratings.</li>
@@ -103,14 +103,14 @@ public class QuestionServiceImpl implements QuestionService {
     // ------------------------------------------------------------------ Interview hall
 
     /**
-     * The interview hall. Regular users see public questions only, anonymously.
+     * The interview hall. Visitors (me == null) and regular users see public questions only, anonymously.
      * Admins see every question from every user, public and private, with its owner (never the answer).
      */
     @Transactional(readOnly = true)
     @Override
     public Page<PublicQuestion> hall(AppUserDetails me, QuestionCategory category, Visibility visibility,
                                      String keyword, int page) {
-        if (me.isAdmin()) {
+        if (me != null && me.isAdmin()) {
             return questions.searchAll(category, visibility, null, keyword,
                             PageRequest.of(Math.max(page, 0), HALL_PAGE_SIZE,
                                     Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"))))
@@ -119,14 +119,14 @@ public class QuestionServiceImpl implements QuestionService {
         return questions.searchPublic(category, keyword,
                         PageRequest.of(Math.max(page, 0), HALL_PAGE_SIZE,
                                 Sort.by(Sort.Direction.DESC, "publishedAt").and(Sort.by(Sort.Direction.DESC, "id"))))
-                .map(q -> PublicQuestion.forUser(q, me.getId()));
+                .map(q -> PublicQuestion.forUser(q, me == null ? null : me.getId()));
     }
 
-    /** Tab counts for the hall: public questions for users, all questions for admins. */
+    /** Tab counts for the hall: public questions for visitors and users, all questions for admins. */
     @Transactional(readOnly = true)
     @Override
     public Counts hallCounts(AppUserDetails me) {
-        if (me.isAdmin()) {
+        if (me != null && me.isAdmin()) {
             return new Counts(questions.countByCategory(QuestionCategory.TECHNICAL),
                     questions.countByCategory(QuestionCategory.BEHAVIORAL));
         }

@@ -17,7 +17,7 @@ import com.jobtrack.web.form.QuestionForm;
  * independent of applications and interview rounds.
  * <ul>
  *   <li>Private questions (the default): only the owner can see them; anyone else gets 404.</li>
- *   <li>Public questions: listed in the interview hall for every signed-in user, showing only the
+ *   <li>Public questions: listed in the interview hall for everyone, including visitors who are not signed in, showing only the
  *       question itself (see {@link PublicQuestion}). The answer and self-rating always stay private.</li>
  *   <li>Admins can see every question, public or private, with its owner (in the interview hall and on
  *       the admin Questions page), but never answers or self-ratings.</li>
@@ -47,7 +47,7 @@ public interface QuestionService {
     void delete(UUID id, AppUserDetails me);
 
     /**
-     * The interview hall. Regular users see public questions only, anonymously.
+     * The interview hall. Visitors ({@code me == null}) and regular users see public questions only, anonymously.
      * Admins see every question from every user, public and private, with its owner (never the answer).
      */
     Page<PublicQuestion> hall(AppUserDetails me, QuestionCategory category, Visibility visibility, String keyword, int page);

@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -269,5 +271,43 @@ class QuestionBankTest extends IntegrationTestBase {
 
         // Regular users cannot see this page
         mvc.perform(get("/admin/questions").with(user(alice))).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void visitorsCanBrowseTheHallWithoutSigningIn_butCannotChangeAnything() throws Exception {
+        AppUserDetails alice = newUser("visible");
+        String publicText = unique("Explain optimistic locking");
+        String privateText = unique("A private draft question");
+        String answer = "VISITOR-HIDDEN-ANSWER-" + UUID.randomUUID();
+        InterviewQuestion shared = addQuestion(alice, "TECHNICAL", publicText, answer, "PUBLIC");
+        addQuestion(alice, "BEHAVIORAL", privateText, "", "PRIVATE");
+
+        // No user: public questions only, never answers, never the author
+        mvc.perform(get("/hall"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(publicText)))
+                .andExpect(content().string(not(containsString(privateText))))
+                .andExpect(content().string(not(containsString(answer))))
+                .andExpect(content().string(not(containsString(alice.getUsername()))));
+
+        // Tabs, search and paging work for visitors too (state in the visitor's session)
+        MockHttpSession session = new MockHttpSession();
+        mvc.perform(post("/hall/filter").session(session).with(csrf()).param("q", "optimistic locking"))
+                .andExpect(redirectedUrl("/hall"));
+        mvc.perform(get("/hall").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(publicText)));
+
+        // Saving a question or moderating needs an account: visitors are sent to the sign-in page
+        mvc.perform(post("/hall/{id}/copy", shared.getId()).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrlPattern("**/login"));
+        mvc.perform(post("/hall/{id}/unpublish", shared.getId()).with(csrf()))
+                .andExpect(redirectedUrlPattern("**/login"));
+        assertThat(questions.findById(shared.getId()).orElseThrow().getVisibility()).isEqualTo(Visibility.PUBLIC);
+
+        // The rest of the site still requires signing in
+        mvc.perform(get("/questions")).andExpect(redirectedUrlPattern("**/login"));
+        mvc.perform(get("/applications")).andExpect(redirectedUrlPattern("**/login"));
     }
 }

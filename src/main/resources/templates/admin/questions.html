@@ -25,7 +25,8 @@
         </form>
     </div>
 
-    <section class="card">
+    <details class="card filter-panel" data-filter-panel>
+        <summary th:replace="~{fragments/layout :: filter-summary}"></summary>
         <form th:action="@{/admin/questions/filter}" method="post" class="filters">
             <input type="hidden" name="ownerId" th:if="${ownerId != null}" th:value="${ownerId}">
             <div class="field">
@@ -53,11 +54,11 @@
                 <button type="submit" class="btn" th:formaction="@{/admin/questions/reset}">Reset</button>
             </div>
         </form>
-    </section>
+    </details>
 
     <section class="card card-flush">
         <div class="table-wrap">
-            <table>
+            <table class="rtable">
                 <thead>
                 <tr>
                     <th>Question</th>
@@ -73,15 +74,15 @@
                     <td colspan="6" class="empty">No questions match.</td>
                 </tr>
                 <tr th:each="item : ${page.content}">
-                    <td class="q-cell" th:text="${item.questionText()}">Question</td>
-                    <td><span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span></td>
-                    <td>
+                    <td class="q-cell cell-main" th:text="${item.questionText()}">Question</td>
+                    <td data-label="Type"><span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span></td>
+                    <td data-label="Visibility">
                         <span class="badge vis-public" th:if="${item.isPublic()}">Public</span>
                         <span class="badge vis-private" th:unless="${item.isPublic()}">Private</span>
                     </td>
-                    <td><a th:href="@{/admin/users/{id}(id=${item.ownerId()})}" th:text="${item.ownerEmail()}"></a></td>
-                    <td class="secondary" th:text="${#temporals.format(item.createdAt(), 'yyyy-MM-dd')}"></td>
-                    <td>
+                    <td data-label="User"><a th:href="@{/admin/users/{id}(id=${item.ownerId()})}" th:text="${item.ownerEmail()}"></a></td>
+                    <td data-label="Added" class="secondary" th:text="${#temporals.format(item.createdAt(), 'yyyy-MM-dd')}"></td>
+                    <td class="cell-actions">
                         <form class="inline" method="post" th:if="${item.isPublic()}"
                               th:action="@{/hall/{id}/unpublish(id=${item.id()})}"
                               data-confirm="Remove this question from the interview hall? It will become private to its owner.">

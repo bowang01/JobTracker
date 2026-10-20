@@ -27,7 +27,8 @@
             Behavioral <span class="tab-count" th:text="${counts.behavioral()}">0</span></button>
     </form>
 
-    <section class="card">
+    <details class="card filter-panel" data-filter-panel>
+        <summary th:replace="~{fragments/layout :: filter-summary}"></summary>
         <form th:action="@{/questions/filter}" method="post" class="filters">
             <div class="field">
                 <label for="q">Search</label>
@@ -46,7 +47,7 @@
                 <button type="submit" class="btn" th:formaction="@{/questions/reset}">Reset</button>
             </div>
         </form>
-    </section>
+    </details>
 
     <section class="card">
         <p class="empty" th:if="${#lists.isEmpty(questions)}">
@@ -61,13 +62,6 @@
                       th:text="${item.selfRating.label}"></span>
                 <span class="badge vis-public" th:if="${item.isPublic()}" title="Shown in the interview hall (your answer stays private)">Public</span>
                 <span class="badge vis-private" th:unless="${item.isPublic()}">Private</span>
-                <span class="q-actions">
-                    <a class="btn btn-sm" th:href="@{/questions/{id}/edit(id=${item.id})}">Edit</a>
-                    <form class="inline" method="post" th:action="@{/questions/{id}/delete(id=${item.id})}"
-                          data-confirm="Delete this question?">
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                    </form>
-                </span>
             </div>
             <div class="q-text" th:text="${item.questionText}">Question</div>
             <details class="q-answer" th:if="${item.answerText}">
@@ -75,6 +69,13 @@
                 <div class="notes" th:text="${item.answerText}"></div>
             </details>
             <div class="muted q-noanswer" th:unless="${item.answerText}">No answer written yet</div>
+            <div class="q-actions">
+                <a class="btn btn-sm" th:href="@{/questions/{id}/edit(id=${item.id})}">Edit</a>
+                <form class="inline" method="post" th:action="@{/questions/{id}/delete(id=${item.id})}"
+                      data-confirm="Delete this question?">
+                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                </form>
+            </div>
         </article>
     </section>
 </main>

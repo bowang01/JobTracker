@@ -20,5 +20,16 @@
         </button>
     </form>
 </th>
+
+<!-- The same sort control as a chip, for the phone layout where table headers are hidden -->
+<form th:fragment="chip(label, key)" method="post" th:action="@{/applications/sort}"
+      th:with="active=${criteria.sort == key}">
+    <input type="hidden" name="key" th:value="${key}">
+    <button type="submit" class="sort-link" th:classappend="${active} ? 'active'">
+        <span th:text="${label}">Label</span>
+        <span class="sort-arrow" aria-hidden="true"
+              th:text="${active} ? (${criteria.dir == 'asc'} ? '▲' : '▼') : ''"></span>
+    </button>
+</form>
 </body>
 </html>

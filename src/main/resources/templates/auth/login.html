@@ -2,11 +2,13 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Sign in')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: nav('')}"></header>
-<main class="auth-wrap">
+<header th:replace="~{fragments/layout :: nav('login')}"></header>
+<main class="auth-split">
+    <section th:replace="~{fragments/auth :: intro}"></section>
+    <div class="auth-panel">
     <div class="card auth-card">
         <h1>Sign in to JobTrack</h1>
-        <p class="muted">Keep track of every application and every interview.</p>
+        <p class="muted">Welcome back. Sign in with your email.</p>
 
         <div th:replace="~{fragments/layout :: flash}"></div>
 
@@ -22,6 +24,7 @@
             <button type="submit" class="btn btn-primary">Sign in</button>
         </form>
         <p class="auth-foot">No account yet? <a th:href="@{/register}">Register</a></p>
+    </div>
     </div>
 </main>
 </body>

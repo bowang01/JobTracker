@@ -27,8 +27,12 @@ public class SecurityConfig {
             // Not a @Component, so Spring Boot does not also register it as a global servlet filter
             .addFilterBefore(new AccountStatusFilter(users), AuthorizationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**", "/favicon.ico", "/error", "/error/**").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/icons/**", "/manifest.json", "/favicon.ico", "/error", "/error/**").permitAll()
                 .requestMatchers("/login", "/register").permitAll()
+                // Interview hall: public questions can be browsed without an account (read-only).
+                // Its tab/search/page state is kept in the visitor's session like for signed-in users.
+                .requestMatchers(HttpMethod.GET, "/hall").permitAll()
+                .requestMatchers(HttpMethod.POST, "/hall/tab", "/hall/filter", "/hall/page", "/hall/reset").permitAll()
                 .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                 // Regular-user features: creating and changing applications, interviews and documents.
                 // Admins only monitor (read-only); the services enforce the same rule (owner-only writes).
@@ -36,7 +40,7 @@ public class SecurityConfig {
                         "/applications/*/interviews/*/edit").hasRole("USER")
                 // The interview question bank is a personal tool for regular users
                 .requestMatchers("/questions", "/questions/**").hasRole("USER")
-                // Interview hall: everyone signed in can browse; users copy questions, admins moderate
+                // Interview hall: users copy questions, admins moderate
                 .requestMatchers(HttpMethod.POST, "/hall/*/copy").hasRole("USER")
                 .requestMatchers(HttpMethod.POST, "/hall/*/unpublish").hasRole("ADMIN")
                 // List search/sort/paging state (POST, stored in the session) is for admins too

@@ -9,8 +9,14 @@
     <div class="page-head">
         <div>
             <h1>Interview hall</h1>
+            <div class="sub" sec:authorize="isAnonymous()">Real interview questions shared by job seekers, by type. Only the questions are public; everyone's answers stay private.
+                <a th:href="@{/register}">Create a free account</a> to keep your own question bank and practise your answers.</div>
             <div class="sub" sec:authorize="hasRole('USER')">Questions other job seekers have shared. Only the questions are public; everyone's answers stay private.</div>
             <div class="sub" sec:authorize="hasRole('ADMIN')">Admin view: every question from every user, public and private. Answers and self-ratings are private to each user and are not shown.</div>
+        </div>
+        <div class="actions" sec:authorize="isAnonymous()">
+            <a class="btn" th:href="@{/login}">Sign in</a>
+            <a class="btn btn-primary" th:href="@{/register}">Create account</a>
         </div>
         <div class="actions" sec:authorize="hasRole('USER')">
             <a class="btn" th:href="@{/questions}">My questions</a>
@@ -31,7 +37,8 @@
             Behavioral <span class="tab-count" th:text="${counts.behavioral()}">0</span></button>
     </form>
 
-    <section class="card">
+    <details class="card filter-panel" data-filter-panel>
+        <summary th:replace="~{fragments/layout :: filter-summary}"></summary>
         <form th:action="@{/hall/filter}" method="post" class="filters">
             <div class="field">
                 <label for="q">Search</label>
@@ -50,11 +57,11 @@
                 <button type="submit" class="btn" th:formaction="@{/hall/reset}">Reset</button>
             </div>
         </form>
-    </section>
+    </details>
 
     <section class="card">
         <p class="empty" th:if="${page.empty}">
-            <span th:if="${counts.total() == 0}" sec:authorize="hasRole('USER')">No public questions yet. Make one of your questions public to share it here.</span>
+            <span th:if="${counts.total() == 0}" sec:authorize="!hasRole('ADMIN')">No public questions yet. Make one of your questions public to share it here.</span>
             <span th:if="${counts.total() == 0}" sec:authorize="hasRole('ADMIN')">No users have added any questions yet.</span>
             <span th:unless="${counts.total() == 0}">No questions match.</span>
         </p>
@@ -62,29 +69,31 @@
         <article class="q-item" th:each="item : ${page.content}">
             <div class="q-meta">
                 <span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span>
-                <span class="hall-meta" sec:authorize="hasRole('USER')" th:text="'Shared ' + ${#temporals.format(item.shownDate(), 'd MMM yyyy')}"></span>
+                <span class="hall-meta" sec:authorize="!hasRole('ADMIN')" th:text="'Shared ' + ${#temporals.format(item.shownDate(), 'd MMM yyyy')}"></span>
                 <th:block sec:authorize="hasRole('ADMIN')">
                     <span class="badge vis-public" th:if="${item.isPublic()}">Public</span>
                     <span class="badge vis-private" th:unless="${item.isPublic()}">Private</span>
                     <a th:href="@{/admin/users/{id}(id=${item.ownerId()})}" th:text="${item.ownerEmail()}"></a>
                     <span class="hall-meta" th:text="${#temporals.format(item.shownDate(), 'd MMM yyyy')}"></span>
                 </th:block>
-                <span class="q-actions">
-                    <span class="badge vis-public" th:if="${item.mine()}">Yours</span>
-                    <a class="btn btn-sm" th:if="${item.mine()}" sec:authorize="hasRole('USER')"
-                       th:href="@{/questions/{id}/edit(id=${item.id()})}">Edit</a>
-                    <form class="inline" method="post" th:unless="${item.mine()}" sec:authorize="hasRole('USER')"
-                          th:action="@{/hall/{id}/copy(id=${item.id()})}">
-                        <button type="submit" class="btn btn-sm">+ Add to my questions</button>
-                    </form>
-                    <form class="inline" method="post" sec:authorize="hasRole('ADMIN')" th:if="${item.isPublic()}"
-                          th:action="@{/hall/{id}/unpublish(id=${item.id()})}"
-                          data-confirm="Remove this question from the interview hall? It will become private to its owner.">
-                        <button type="submit" class="btn btn-sm btn-danger">Remove from hall</button>
-                    </form>
-                </span>
             </div>
             <div class="q-text" th:text="${item.questionText()}">Question</div>
+            <div class="q-actions">
+                <span class="badge vis-public" th:if="${item.mine()}">Yours</span>
+                <a class="btn btn-sm" th:if="${item.mine()}" sec:authorize="hasRole('USER')"
+                   th:href="@{/questions/{id}/edit(id=${item.id()})}">Edit</a>
+                <form class="inline" method="post" th:unless="${item.mine()}" sec:authorize="hasRole('USER')"
+                      th:action="@{/hall/{id}/copy(id=${item.id()})}">
+                    <button type="submit" class="btn btn-sm">+ Add to my questions</button>
+                </form>
+                <!-- Visitors: signing in is needed to save a question -->
+                <a class="btn btn-sm" sec:authorize="isAnonymous()" th:href="@{/login}">+ Add to my questions</a>
+                <form class="inline" method="post" sec:authorize="hasRole('ADMIN')" th:if="${item.isPublic()}"
+                      th:action="@{/hall/{id}/unpublish(id=${item.id()})}"
+                      data-confirm="Remove this question from the interview hall? It will become private to its owner.">
+                    <button type="submit" class="btn btn-sm btn-danger">Remove from hall</button>
+                </form>
+            </div>
         </article>
 
         <div class="pager" th:if="${page.totalPages > 1}">

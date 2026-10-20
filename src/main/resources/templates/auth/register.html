@@ -2,8 +2,10 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Register')}"></head>
 <body>
-<header th:replace="~{fragments/layout :: nav('')}"></header>
-<main class="auth-wrap">
+<header th:replace="~{fragments/layout :: nav('register')}"></header>
+<main class="auth-split">
+    <section th:replace="~{fragments/auth :: intro}"></section>
+    <div class="auth-panel">
     <div class="card auth-card">
         <h1>Create an account</h1>
         <p class="muted">Just your email and a password.</p>
@@ -29,6 +31,7 @@
             <button type="submit" class="btn btn-primary">Register</button>
         </form>
         <p class="auth-foot">Already have an account? <a th:href="@{/login}">Sign in</a></p>
+    </div>
     </div>
 </main>
 </body>

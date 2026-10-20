@@ -3,47 +3,139 @@
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- viewport-fit=cover: content can use the full screen on notched phones; the CSS pads with safe-area insets -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#16201d">
+    <!-- "Add to Home Screen" opens JobTrack full screen like an app -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="JobTrack">
     <title th:text="${title} + ' · JobTrack'">JobTrack</title>
+    <link rel="manifest" th:href="@{/manifest.json}">
+    <link rel="icon" type="image/svg+xml" th:href="@{/icons/icon.svg}">
+    <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 
-<header th:fragment="nav(active)" class="topbar">
-    <div class="topbar-inner">
-        <a class="brand" th:href="@{/dashboard}">JobTrack</a>
-        <nav class="mainnav" sec:authorize="hasRole('USER')">
-            <a th:href="@{/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">Dashboard</a>
-            <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">Applications</a>
-            <a th:href="@{/applications/new}" th:classappend="${active == 'new'} ? 'active'">New application</a>
-            <a th:href="@{/questions}" th:classappend="${active == 'questions'} ? 'active'">My questions</a>
-            <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">Interview hall</a>
+<!--
+  App shell, included by every page as nav('<active item>'):
+  * wide screens (>= 1024px): fixed dark sidebar on the left, content fills the rest of the width;
+  * phones and tablets: slim top bar + a bottom tab bar within thumb reach.
+-->
+<header th:fragment="nav(active)" class="shell">
+
+    <!-- ===== Sidebar (desktop) ===== -->
+    <aside class="sidebar" sec:authorize="isAuthenticated()">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">J</span>JobTrack</a>
+
+        <nav class="side-nav" sec:authorize="hasRole('USER')" aria-label="Main">
+            <a th:href="@{/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: home}"></svg>Dashboard</a>
+            <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: briefcase}"></svg>Applications</a>
+            <a th:href="@{/questions}" th:classappend="${active == 'questions'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: question}"></svg>My questions</a>
+            <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: people}"></svg>Interview hall</a>
+            <a class="side-cta" th:href="@{/applications/new}" th:classappend="${active == 'new'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: plus}"></svg>New application</a>
         </nav>
-        <nav class="mainnav" sec:authorize="hasRole('ADMIN')">
-            <a th:href="@{/admin}" th:classappend="${active == 'admin-overview'} ? 'active'">Overview</a>
-            <a th:href="@{/admin/users}" th:classappend="${active == 'admin-users'} ? 'active'">Users</a>
-            <a th:href="@{/admin/questions}" th:classappend="${active == 'admin-questions'} ? 'active'">Questions</a>
-            <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">All applications</a>
-            <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">Interview hall</a>
+
+        <nav class="side-nav" sec:authorize="hasRole('ADMIN')" aria-label="Admin">
+            <div class="side-label">Admin</div>
+            <a th:href="@{/admin}" th:classappend="${active == 'admin-overview'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: chart}"></svg>Overview</a>
+            <a th:href="@{/admin/users}" th:classappend="${active == 'admin-users'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: user}"></svg>Users</a>
+            <a th:href="@{/admin/questions}" th:classappend="${active == 'admin-questions'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: question}"></svg>Questions</a>
+            <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: briefcase}"></svg>All applications</a>
+            <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: people}"></svg>Interview hall</a>
         </nav>
-        <div class="usermenu" sec:authorize="isAuthenticated()">
-            <span sec:authorize="hasRole('ADMIN')" class="role-tag">ADMIN</span>
-            <a th:href="@{/profile}" sec:authentication="name">user</a>
-            <form th:action="@{/logout}" method="post" class="inline">
-                <button type="submit" class="btn-link">Sign out</button>
+
+        <div class="side-user">
+            <a class="side-me" th:href="@{/profile}" th:classappend="${active == 'profile'} ? 'active'">
+                <span class="avatar" th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">A</span>
+                <span class="side-me-text">
+                    <span class="side-me-name" sec:authentication="name">user@example.com</span>
+                    <span class="side-me-role" sec:authorize="hasRole('ADMIN')">Administrator</span>
+                    <span class="side-me-role" sec:authorize="hasRole('USER')">Profile &amp; password</span>
+                </span>
+            </a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="side-logout" title="Sign out" aria-label="Sign out">
+                    <svg th:replace="~{fragments/icons :: logout}"></svg></button>
+            </form>
+        </div>
+    </aside>
+
+    <!-- ===== Top bar (phones/tablets; also the only bar on the sign-in pages) ===== -->
+    <div class="appbar">
+        <a class="brand" th:href="@{/}"><span class="brand-mark">J</span>JobTrack</a>
+        <span class="appbar-role" sec:authorize="hasRole('ADMIN')">ADMIN</span>
+        <!-- Visitors (not signed in): the public interview hall + sign in / create account -->
+        <div class="appbar-actions" sec:authorize="isAnonymous()">
+            <a class="appbar-link" th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">
+                <svg th:replace="~{fragments/icons :: people}"></svg><span>Interview hall</span></a>
+            <a class="btn btn-sm btn-on-dark" th:if="${active != 'login'}" th:href="@{/login}">Sign in</a>
+            <a class="btn btn-sm btn-on-dark" th:if="${active == 'login'}" th:href="@{/register}">Create account</a>
+        </div>
+        <div class="appbar-actions" sec:authorize="isAuthenticated()">
+            <a class="avatar" th:href="@{/profile}" title="Profile" aria-label="Profile"
+               th:text="${#strings.toUpperCase(#strings.substring(#authentication.name, 0, 1))}">A</a>
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="icon-btn" title="Sign out" aria-label="Sign out">
+                    <svg th:replace="~{fragments/icons :: logout}"></svg></button>
             </form>
         </div>
     </div>
+
+    <!-- ===== Bottom tab bar (phones/tablets) ===== -->
+    <nav class="tabbar" sec:authorize="hasRole('USER')" aria-label="Main">
+        <a th:href="@{/dashboard}" th:classappend="${active == 'dashboard'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: home}"></svg><span>Home</span></a>
+        <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: briefcase}"></svg><span>Applications</span></a>
+        <a class="tab-cta" th:href="@{/applications/new}" th:classappend="${active == 'new'} ? 'active'" aria-label="New application">
+            <span class="tab-cta-circle"><svg th:replace="~{fragments/icons :: plus}"></svg></span><span>New</span></a>
+        <a th:href="@{/questions}" th:classappend="${active == 'questions'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: question}"></svg><span>Questions</span></a>
+        <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: people}"></svg><span>Hall</span></a>
+    </nav>
+    <nav class="tabbar" sec:authorize="hasRole('ADMIN')" aria-label="Admin">
+        <a th:href="@{/admin}" th:classappend="${active == 'admin-overview'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: chart}"></svg><span>Overview</span></a>
+        <a th:href="@{/admin/users}" th:classappend="${active == 'admin-users'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: user}"></svg><span>Users</span></a>
+        <a th:href="@{/admin/questions}" th:classappend="${active == 'admin-questions'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: question}"></svg><span>Questions</span></a>
+        <a th:href="@{/applications}" th:classappend="${active == 'applications'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: briefcase}"></svg><span>Applications</span></a>
+        <a th:href="@{/hall}" th:classappend="${active == 'hall'} ? 'active'">
+            <svg th:replace="~{fragments/icons :: people}"></svg><span>Hall</span></a>
+    </nav>
 </header>
 
 <div th:fragment="flash">
-    <div class="alert alert-success" th:if="${success}" th:text="${success}">ok</div>
-    <div class="alert alert-error" th:if="${error}" th:text="${error}">error</div>
-    <div class="alert alert-info" th:if="${info}" th:text="${info}">info</div>
+    <div class="alert alert-success" th:if="${success}" th:text="${success}" role="status">ok</div>
+    <div class="alert alert-error" th:if="${error}" th:text="${error}" role="alert">error</div>
+    <div class="alert alert-info" th:if="${info}" th:text="${info}" role="status">info</div>
     <!-- After a redirect, scroll to this section (instead of putting a #fragment in the URL) -->
     <span hidden th:if="${scrollTo}" id="scroll-target" th:attr="data-target=${scrollTo}"></span>
 </div>
+
+<!-- Collapsible "Search & filter" heading for list pages: folded on phones, open on wide screens (see app.js) -->
+<summary th:fragment="filter-summary" class="filter-summary">
+    <svg th:replace="~{fragments/icons :: filter}"></svg>
+    <span>Search &amp; filter</span>
+    <svg th:replace="~{fragments/icons :: chevron}"></svg>
+</summary>
 
 <span th:fragment="status(s)" class="badge" th:classappend="${s.css}" th:text="${s.label}">Status</span>
 

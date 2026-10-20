@@ -52,6 +52,8 @@ public class AccountStatusFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI().substring(request.getContextPath().length());
-        return path.startsWith("/css/") || path.startsWith("/js/") || path.equals("/login") || path.startsWith("/error");
+        return path.startsWith("/css/") || path.startsWith("/js/") || path.startsWith("/icons/")
+                || path.equals("/manifest.json") || path.equals("/favicon.ico")
+                || path.equals("/login") || path.startsWith("/error");
     }
 }

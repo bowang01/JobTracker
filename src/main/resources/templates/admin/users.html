@@ -12,7 +12,8 @@
         </div>
     </div>
 
-    <section class="card">
+    <details class="card filter-panel" data-filter-panel>
+        <summary th:replace="~{fragments/layout :: filter-summary}"></summary>
         <form th:action="@{/admin/users/filter}" method="post" class="filters">
             <div class="field">
                 <label for="q">Search</label>
@@ -31,11 +32,11 @@
                 <button type="submit" class="btn" th:formaction="@{/admin/users/reset}">Reset</button>
             </div>
         </form>
-    </section>
+    </details>
 
     <section class="card card-flush">
         <div class="table-wrap">
-            <table>
+            <table class="rtable">
                 <thead>
                 <tr>
                     <th>User</th>
@@ -51,19 +52,19 @@
                     <td colspan="6" class="empty">No users match.</td>
                 </tr>
                 <tr th:each="row : ${rows}" th:with="u=${row.user()}">
-                    <td>
+                    <td class="cell-main">
                         <a class="primary" th:href="@{/admin/users/{id}(id=${u.id})}" th:text="${u.email}"></a>
                         <div class="secondary" th:if="${u.displayName}" th:text="${u.displayName}"></div>
                     </td>
-                    <td>
+                    <td data-label="Account">
                         <span class="badge" th:classappend="${u.enabled} ? 's-offer' : 's-rejected'"
                               th:text="${u.enabled} ? 'Active' : 'Disabled'"></span>
                     </td>
-                    <td th:text="${row.applicationCount()}">0</td>
-                    <td class="secondary"
+                    <td data-label="Applications" th:text="${row.applicationCount()}">0</td>
+                    <td data-label="Last sign-in" class="secondary"
                         th:text="${u.lastLoginAt != null} ? ${#temporals.format(u.lastLoginAt, 'yyyy-MM-dd HH:mm')} : 'Never'"></td>
-                    <td class="secondary" th:text="${#temporals.format(u.createdAt, 'yyyy-MM-dd')}"></td>
-                    <td>
+                    <td data-label="Registered" class="secondary" th:text="${#temporals.format(u.createdAt, 'yyyy-MM-dd')}"></td>
+                    <td class="cell-actions">
                         <div class="actions">
                             <a class="btn btn-sm" th:href="@{/admin/users/{id}(id=${u.id})}">View</a>
                             <form class="inline" method="post" th:action="@{/admin/users/{id}/enabled(id=${u.id})}">

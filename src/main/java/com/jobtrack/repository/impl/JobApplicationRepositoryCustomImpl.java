@@ -16,6 +16,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
@@ -35,6 +36,8 @@ public class JobApplicationRepositoryCustomImpl implements JobApplicationReposit
 
         CriteriaQuery<JobApplication> query = cb.createQuery(JobApplication.class);
         Root<JobApplication> root = query.from(JobApplication.class);
+        // Load the owner in the same query; otherwise the EAGER owner costs one extra SELECT per distinct owner
+        root.fetch("owner", JoinType.INNER);
         query.select(root).where(conditions(cb, root, filter));
 
         CriteriaQuery<Long> count = cb.createQuery(Long.class);

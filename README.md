@@ -77,7 +77,7 @@ Upload limits are in `application.properties`: 5MB per file (`jobtrack.upload.ma
 | 07 | Dashboard | Totals, active, per-status counts, interviews in the next 14 days and the last 14 days, recently updated |
 | 08 | Security | Data isolation, file permissions, CSRF, CSP, form and file validation, error pages |
 | 09 | Interview questions | Personal question bank, separate from applications: technical and behavioral questions with your answer and a self-rating; search and filter |
-| 10 | Interview hall | Questions users chose to make public, browsable by everyone (questions only, never answers); copy a question into your own bank |
+| 10 | Interview hall | Questions users chose to make public, browsable by everyone, **including visitors who are not signed in** (questions only, never answers or authors); signed-in users can copy a question into their own bank |
 | — | Admin | Monitoring overview (users, sign-ins, site-wide status distribution, storage, questions), all users' interview questions (no answers), user list with search, user detail, enable/disable, delete user (with all their data and files); read-only view of any user's applications |
 
 ### Roles
@@ -101,7 +101,7 @@ Upload limits are in `application.properties`: 5MB per file (`jobtrack.upload.ma
 
 ### Interview questions and the interview hall
 
-* Questions belong to one user and are **private by default**. Admins can see all questions, including private ones and who owns them, in the interview hall and on the admin Questions page, but not answers or self-ratings. The owner can make a question **public**, which lists it in the interview hall for every signed-in user.
+* Questions belong to one user and are **private by default**. Admins can see all questions, including private ones and who owns them, in the interview hall and on the admin Questions page, but not answers or self-ratings. The owner can make a question **public**, which lists it in the interview hall for everyone. The hall is the only page visitors can open without signing in: they can browse, switch tabs, search and page through it, but saving a question or moderating needs an account (they are sent to the sign-in page).
 * **Answers and self-ratings are always private.** The hall only exposes the question text, its type and when it was shared (through the `PublicQuestion` record, which has no answer field), never the author. Hall search does not look at answers either, so it cannot be used to discover them.
 * Questions record no company or other source, so the hall never shows where a question was asked.
 * Anyone can copy a public question into their own bank as a new private question without an answer.
@@ -131,7 +131,7 @@ Upload limits are in `application.properties`: 5MB per file (`jobtrack.upload.ma
 | Changing IDs in the URL cannot reach another user's applications or files | `userCannotReachAnotherUsersDataByChangingIds` |
 | Invalid files, oversized files and invalid forms are rejected | `invalidFilesOversizedFilesAndInvalidFormsAreRejected` |
 | Data and files survive a restart | `PersistenceAcrossRestartTest` (file-based database, app started twice on the same data directory) |
-| Interview questions and hall | `QuestionBankTest` (private by default, isolation, answers never in the hall, copy, admin moderation, cascade on user delete) |
+| Interview questions and hall | `QuestionBankTest` (private by default, isolation, answers never in the hall, copy, admin moderation, cascade on user delete, visitors can browse but not change anything) |
 | Admin | `adminCanDisableAndDeleteUsers_withFileCleanup`, `adminHasNoUserFeatures_andCannotChangeUsersData`, `adminCanMonitorUsers` |
 
 ## Project layout
@@ -162,6 +162,19 @@ src/main/resources
   implemented by hand in `repository/impl/*RepositoryCustomImpl` with the Criteria API; Spring Data merges them
   into the repository by naming convention.
 
+## Mobile-friendly UI
+
+* One shell for every page (`fragments/layout.html`): on phones and tablets a slim top bar plus a bottom tab bar
+  (with a central "New" button) within thumb reach; from 1024px wide a fixed sidebar, with the content using the
+  full width.
+* Tables marked `rtable` turn into one card per row on phones (cells show their `data-label`); the application
+  list gets sort chips there because the column headers are hidden.
+* Search & filter panels fold away on phones (open on wide screens, tagged "Active" when a filter is set).
+* 44px touch targets and 16px inputs on phones (so iOS does not zoom in), safe-area padding for notched phones.
+* A web app manifest and icons: "Add to Home Screen" opens JobTrack full screen like an app.
+* Sign-in and register pages: what JobTrack does on the left, the form on the right (form first on phones),
+  with a link to the public interview hall.
+
 ## Clean URLs
 
 Search, filter, sort, paging, tabs and messages never appear in the address bar:
@@ -174,7 +187,7 @@ Search, filter, sort, paging, tabs and messages never appear in the address bar:
 * Messages (saved, signed out, wrong password, account changed) are flash attributes, so no `?error` or `?logout`.
 * After a form on the application page, the page scrolls to the right section using a flash value
   instead of a `#fragment`.
-* Detail pages keep their ID in the path (for example `/applications/12`), so they can still be refreshed and bookmarked.
+* Detail pages keep their ID in the path (for example `/applications/3f2c9a1e-…`), so they can still be refreshed and bookmarked.
 
 ## Known trade-offs / next steps
 

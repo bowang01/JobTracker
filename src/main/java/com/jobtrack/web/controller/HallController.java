@@ -26,7 +26,9 @@ import jakarta.servlet.http.HttpSession;
 
 /**
  * Interview hall: public questions shared by all users (question only; answers stay private).
- * Viewing: any signed-in user; admins see every question, including private ones, with the owner. Copy to my bank: regular users. Take out of the hall: admins (SecurityConfig).
+ * Viewing: anyone, signed in or not (visitors and users see public questions only; admins see every question,
+ * including private ones, with the owner). Copy to my bank: regular users. Take out of the hall: admins (SecurityConfig).
+ * {@code me} is null for visitors who are not signed in.
  */
 @Controller
 @RequestMapping("/hall")
@@ -42,8 +44,8 @@ public class HallController {
     @GetMapping
     public String hall(HttpSession session, @AuthenticationPrincipal AppUserDetails me, Model model) {
         HallFilter f = filter(session);
-        // Only admins can filter by visibility (users only ever see public questions)
-        Visibility vis = me.isAdmin() ? f.getVisibility() : null;
+        // Only admins can filter by visibility (visitors and users only ever see public questions)
+        Visibility vis = me != null && me.isAdmin() ? f.getVisibility() : null;
         model.addAttribute("page", service.hall(me, f.getCategory(), vis, f.getQ(), f.getPage()));
         model.addAttribute("counts", service.hallCounts(me));
         model.addAttribute("category", f.getCategory());

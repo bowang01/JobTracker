@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Left half of the sign-in and register pages: what JobTrack does, kept short so it balances the form.
+  On phones it is shown below the form (see .auth-split in app.css).
+-->
+<section th:fragment="intro" class="auth-intro" aria-label="About JobTrack">
+    <div class="auth-intro-inner">
+        <h2 class="auth-headline">Your job search, <span>in one place.</span></h2>
+        <p class="auth-lede">Track applications, interviews and answers, from your laptop or your phone.</p>
+
+        <ul class="features">
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: briefcase}"></svg></span>Every application and its status history</li>
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: file}"></svg></span>CVs and cover letters, versioned</li>
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: question}"></svg></span>Interview notes and a question bank</li>
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: lock}"></svg></span>Private by default</li>
+        </ul>
+
+        <a class="hall-link" th:href="@{/hall}">Browse the interview hall, no account needed
+            <svg th:replace="~{fragments/icons :: arrow}"></svg></a>
+    </div>
+</section>
+</body>
+</html>

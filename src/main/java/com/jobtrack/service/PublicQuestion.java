@@ -22,10 +22,10 @@ public record PublicQuestion(UUID id,
                              UUID ownerId,
                              String ownerEmail) {
 
-    /** View for a regular user: anonymous. */
+    /** View for a regular user or a visitor (viewerId null): anonymous. */
     public static PublicQuestion forUser(InterviewQuestion q, UUID viewerId) {
         return new PublicQuestion(q.getId(), q.getCategory(), q.getQuestionText(), q.getPublishedAt(),
-                q.getOwner().getId().equals(viewerId), q.getVisibility(), null, null);
+                viewerId != null && q.getOwner().getId().equals(viewerId), q.getVisibility(), null, null);
     }
 
     /** View for an admin: includes private questions, with visibility and owner (still no answer). */

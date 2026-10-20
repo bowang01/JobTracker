@@ -17,11 +17,12 @@
             </div>
         </div>
         <div class="actions">
-            <a class="btn btn-primary" sec:authorize="hasRole('USER')" th:href="@{/applications/new}">+ New application</a>
+            <a class="btn btn-primary dup-of-tabbar" sec:authorize="hasRole('USER')" th:href="@{/applications/new}">+ New application</a>
         </div>
     </div>
 
-    <section class="card">
+    <details class="card filter-panel" data-filter-panel>
+        <summary th:replace="~{fragments/layout :: filter-summary}"></summary>
         <!-- POST + redirect: the filters are kept in the session, so the address bar stays /applications -->
         <form th:action="@{/applications/filter}" method="post" th:object="${criteria}" class="filters">
             <div class="field">
@@ -59,11 +60,17 @@
                 <button type="submit" class="btn" th:formaction="@{/applications/reset}">Reset</button>
             </div>
         </form>
-    </section>
+    </details>
 
     <section class="card card-flush">
+        <div class="sortbar">
+            <span class="sortbar-label">Sort</span>
+            <form th:replace="~{fragments/sort :: chip('Updated', 'updated')}"></form>
+            <form th:replace="~{fragments/sort :: chip('Applied', 'applied')}"></form>
+            <form th:replace="~{fragments/sort :: chip('Company', 'company')}"></form>
+        </div>
         <div class="table-wrap">
-            <table>
+            <table class="rtable">
                 <thead>
                 <tr>
                     <th th:replace="~{fragments/sort :: sortable('Company / position', 'company')}"></th>
@@ -82,18 +89,18 @@
                     </td>
                 </tr>
                 <tr th:each="a : ${page.content}">
-                    <td>
+                    <td class="cell-main">
                         <a class="primary" th:href="@{/applications/{id}(id=${a.id})}" th:text="${a.company}">Company</a>
                         <div class="secondary" th:text="${a.positionTitle}">Position</div>
                     </td>
-                    <td><span th:replace="~{fragments/layout :: status(${a.status})}"></span></td>
-                    <td th:text="${a.appliedDate != null} ? ${#temporals.format(a.appliedDate, 'yyyy-MM-dd')} : '—'">—</td>
-                    <td>
+                    <td data-label="Status"><span th:replace="~{fragments/layout :: status(${a.status})}"></span></td>
+                    <td data-label="Applied" th:text="${a.appliedDate != null} ? ${#temporals.format(a.appliedDate, 'yyyy-MM-dd')} : '—'">—</td>
+                    <td data-label="Location / source">
                         <div th:text="${a.location ?: '—'}"></div>
                         <div class="secondary" th:if="${a.source}" th:text="${a.source}"></div>
                     </td>
-                    <td sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/users/{id}(id=${a.owner.id})}" th:text="${a.owner.email}">user</a></td>
-                    <td class="secondary" th:text="${#temporals.format(a.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
+                    <td data-label="User" sec:authorize="hasRole('ADMIN')"><a th:href="@{/admin/users/{id}(id=${a.owner.id})}" th:text="${a.owner.email}">user</a></td>
+                    <td data-label="Last updated" class="secondary" th:text="${#temporals.format(a.updatedAt, 'yyyy-MM-dd HH:mm')}"></td>
                 </tr>
                 </tbody>
             </table>

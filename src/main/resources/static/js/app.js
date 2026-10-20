@@ -18,6 +18,23 @@
     if (target) target.scrollIntoView();
   });
 
+  // Search & filter panels: open on wide screens; on phones stay folded (so the list comes first)
+  // unless a filter is in use. A panel with a filter in use gets an "Active" tag either way.
+  document.addEventListener('DOMContentLoaded', function () {
+    var wide = window.matchMedia('(min-width: 720px)').matches;
+    var panels = document.querySelectorAll('details[data-filter-panel]');
+    for (var i = 0; i < panels.length; i++) {
+      var panel = panels[i];
+      var fields = panel.querySelectorAll('input:not([type=hidden]), select');
+      var active = false;
+      for (var j = 0; j < fields.length; j++) {
+        if (fields[j].value) { active = true; break; }
+      }
+      if (active) panel.classList.add('is-active');
+      if (wide) panel.open = true;
+    }
+  });
+
   // Check the file size in the browser before uploading (the server validates it again)
   document.addEventListener('change', function (e) {
     var input = e.target;
