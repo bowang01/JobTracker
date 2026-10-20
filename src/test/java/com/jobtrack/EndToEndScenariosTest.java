@@ -219,7 +219,8 @@ class EndToEndScenariosTest extends IntegrationTestBase {
 
         mvc.perform(post("/applications/{id}/status", id).with(user(me)).with(csrf())
                         .param("toStatus", "APPLIED").param("occurredAt", nowStr).param("note", "Applied on SEEK"))
-                .andExpect(redirectedUrl("/applications/" + id + "#status"))
+                .andExpect(redirectedUrl("/applications/" + id))
+                .andExpect(flash().attribute("scrollTo", "status"))
                 .andExpect(flash().attributeExists("success"));
 
         JobApplication app = apps.findById(id).orElseThrow();
@@ -485,7 +486,8 @@ class EndToEndScenariosTest extends IntegrationTestBase {
         for (MockMultipartFile f : Arrays.asList(exe, fakePdf, tooBig, empty, badTxt)) {
             mvc.perform(multipart("/applications/{id}/documents", id).file(f)
                             .param("type", "CV").with(user(me)).with(csrf()))
-                    .andExpect(redirectedUrl("/applications/" + id + "#documents"))
+                    .andExpect(redirectedUrl("/applications/" + id))
+                    .andExpect(flash().attribute("scrollTo", "documents"))
                     .andExpect(flash().attributeExists("error"));
         }
         assertThat(documents.findByApplicationIdOrderByDocTypeAscVersionNoDesc(id)).isEmpty();
