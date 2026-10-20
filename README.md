@@ -26,7 +26,7 @@ Tables are created by Flyway on the first start (one script, `V1__init.sql`). Yo
 ```bash
 # Needs JDK 21 and Maven 3.9+
 mvn verify                 # compile and run all integration tests (no MySQL needed, see "Tests")
-mvn spring-boot:run        # start, then open http://localhost:8080
+mvn spring-boot:run        # start, then open http://localhost:5566
 ```
 
 Users sign in with their **email**. On first start there is no administrator, so one is created with the email `admin@jobtrack.local` (`JOBTRACK_ADMIN_EMAIL`):
@@ -188,6 +188,30 @@ Search, filter, sort, paging, tabs and messages never appear in the address bar:
 * After a form on the application page, the page scrolls to the right section using a flash value
   instead of a `#fragment`.
 * Detail pages keep their ID in the path (for example `/applications/3f2c9a1e-…`), so they can still be refreshed and bookmarked.
+
+## Deployment (Hostinger VPS)
+
+Pushing to `master` (or running the workflow by hand) runs `.github/workflows/deploy.yml`:
+
+1. **test**: `mvn verify` (H2, no MySQL needed).
+2. **build**: builds the `Dockerfile` and pushes `ghcr.io/bowang01/jobtracker:<commit sha>` and `:latest`.
+3. **deploy**: sends `docker-compose.prod.yml` to Hostinger Docker Manager (project `jobtrack`), which pulls that exact image tag.
+
+The app listens on port **5566**. On the VPS it is bound to `127.0.0.1:5566` only and also joins the shared `proxy`
+Docker network as `jobtrack-app`, so a reverse proxy can reach it either way (example in `deploy/nginx.conf`).
+MySQL has no published port.
+
+One-time setup:
+
+* GitHub repository → Settings → Secrets and variables → Actions:
+  * Secrets: `HOSTINGER_API_KEY`, `JOBTRACK_ADMIN_PASSWORD`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`
+  * Variables: `HOSTINGER_VM_ID`, `JOBTRACK_ADMIN_EMAIL`
+* After the first successful build, make the `jobtracker` package public (GitHub profile → Packages → jobtracker →
+  Package settings), or run `docker login ghcr.io` once on the VPS with a token that has `read:packages`.
+* The `proxy` network must exist on the VPS: `docker network create proxy`.
+* Point the domain at the VPS, add the reverse proxy site (`deploy/nginx.conf`), then enable HTTPS.
+
+Data lives in the Docker volumes `jobtrack_mysql` and `jobtrack_data` (uploaded files). Back up both together.
 
 ## Known trade-offs / next steps
 

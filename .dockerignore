@@ -1,0 +1,14 @@
+target
+data
+.git
+.github
+.idea
+*.iml
+.vscode
+*.log
+.env
+.env.*
+deploy
+docs
+README.md
+docker-compose*.yml

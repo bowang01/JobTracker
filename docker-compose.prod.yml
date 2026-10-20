@@ -1,0 +1,62 @@
+# Production stack for the Hostinger VPS (used by .github/workflows/deploy.yml).
+# Local development keeps using docker-compose.yml (MySQL only).
+#
+# The app image is built by GitHub Actions and pulled from GHCR; the VPS never builds.
+# Required variables are passed in by the workflow (see .env.example).
+services:
+  jobtrack-db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: jobtrack
+      MYSQL_USER: jobtrack
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    # No ports: MySQL is only reachable from the app container
+    volumes:
+      - jobtrack_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    mem_limit: 512m
+
+  jobtrack-app:
+    image: ghcr.io/bowang01/jobtracker:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      jobtrack-db:
+        condition: service_healthy
+    environment:
+      PORT: "5566"
+      JOBTRACK_DB_URL: jdbc:mysql://jobtrack-db:3306/jobtrack?useUnicode=true&characterEncoding=UTF-8&connectionTimeZone=LOCAL
+      JOBTRACK_DB_USER: jobtrack
+      JOBTRACK_DB_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD is required}
+      JOBTRACK_DATA_DIR: /app/data
+      JOBTRACK_ADMIN_EMAIL: ${JOBTRACK_ADMIN_EMAIL:?JOBTRACK_ADMIN_EMAIL is required}
+      JOBTRACK_ADMIN_PASSWORD: ${JOBTRACK_ADMIN_PASSWORD:?JOBTRACK_ADMIN_PASSWORD is required}
+    # Bound to localhost only: reachable by an nginx on the VPS host, not from the internet
+    ports:
+      - "127.0.0.1:5566:5566"
+    volumes:
+      # Uploaded CVs / cover letters / JDs. Back this up together with jobtrack_mysql.
+      - jobtrack_data:/app/data
+    mem_limit: 768m
+    networks:
+      default:
+      proxy:
+        # A reverse proxy container on the shared `proxy` network reaches the app at http://jobtrack-app:5566
+        aliases: [jobtrack-app]
+
+networks:
+  proxy:
+    name: proxy
+    external: true
+
+volumes:
+  jobtrack_mysql:
+    name: jobtrack_mysql
+  jobtrack_data:
+    name: jobtrack_data
