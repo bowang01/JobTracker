@@ -17,15 +17,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.jobtrack.config.DemoAccount;
 import com.jobtrack.config.DemoData;
 import com.jobtrack.config.JobTrackProperties;
+import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Role;
 import com.jobtrack.domain.User;
+import com.jobtrack.repository.InterviewQuestionRepository;
 import com.jobtrack.security.AppUserDetails;
+import com.jobtrack.service.QuestionService;
+import com.jobtrack.web.form.QuestionForm;
 
 /** Visitors' landing page and the optional demo account with sample data. */
 class DemoAccountTest extends IntegrationTestBase {
 
     @Autowired
     DemoData demoData;
+
+    @Autowired
+    QuestionService questionService;
+
+    @Autowired
+    InterviewQuestionRepository questions;
 
     @Test
     void visitorsLandOnTheInterviewHall_withAnIntroduction() throws Exception {
@@ -59,15 +70,43 @@ class DemoAccountTest extends IntegrationTestBase {
             mvc.perform(get("/hall"))
                     .andExpect(content().string(containsString(DemoData.SAMPLE_PUBLIC_QUESTION)));
 
-            demoData.reset(email, "demo-password-1", admin);
+            // Visitors change things: delete all applications and one public sample question, add a private one
+            InterviewQuestion sample = sampleQuestion(demo);
+            long publicBefore = publicQuestionsOf(demo);
+            userService.deleteApplicationData(demo.getId());
+            questions.delete(sample);
+            QuestionForm junk = QuestionForm.withCategory(QuestionCategory.TECHNICAL);
+            junk.setQuestionText("Visitor junk " + UUID.randomUUID());
+            InterviewQuestion junkQuestion = questionService.create(junk, demo);
+            InterviewQuestion keptPublic = questionService.search(demo, null, null, null, null).stream()
+                    .filter(q -> q.isPublic()).findFirst().orElseThrow();
+
+            demoData.reset(email, "demo-password-1");
+
+            // Same account; applications back; untouched public samples keep their id and share date
             User after = userRepository.findByEmailIgnoreCase(email).orElseThrow();
-            assertThat(after.getId()).isNotEqualTo(demo.getId());
-            mvc.perform(get("/applications").with(user(new AppUserDetails(after))))
+            assertThat(after.getId()).isEqualTo(demo.getId());
+            mvc.perform(get("/applications").with(user(demo)))
                     .andExpect(content().string(containsString(DemoData.SAMPLE_COMPANY)));
+            InterviewQuestion keptAfter = questions.findById(keptPublic.getId()).orElseThrow();
+            assertThat(keptAfter.getPublishedAt()).isEqualTo(keptPublic.getPublishedAt());
+            // The deleted sample is back, the visitor's question is gone, and nothing is duplicated
+            assertThat(sampleQuestion(demo).getId()).isNotEqualTo(sample.getId());
+            assertThat(questions.findById(junkQuestion.getId())).isEmpty();
+            assertThat(publicQuestionsOf(demo)).isEqualTo(publicBefore);
         } finally {
             // Tests share one database: remove the demo user so other tests see an unchanged hall
             userRepository.findByEmailIgnoreCase(email).ifPresent(u -> userService.deleteUser(u.getId(), admin));
         }
+    }
+
+    private InterviewQuestion sampleQuestion(AppUserDetails demo) {
+        return questionService.search(demo, null, null, null, null).stream()
+                .filter(q -> q.getQuestionText().equals(DemoData.SAMPLE_PUBLIC_QUESTION)).findFirst().orElseThrow();
+    }
+
+    private long publicQuestionsOf(AppUserDetails demo) {
+        return questionService.search(demo, null, null, null, null).stream().filter(q -> q.isPublic()).count();
     }
 
     @Test

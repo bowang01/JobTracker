@@ -3,6 +3,9 @@ package com.jobtrack.config;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -10,6 +13,7 @@ import org.springframework.stereotype.Component;
 import com.jobtrack.domain.AnswerRating;
 import com.jobtrack.domain.ApplicationStatus;
 import com.jobtrack.domain.InterviewOutcome;
+import com.jobtrack.domain.InterviewQuestion;
 import com.jobtrack.domain.InterviewType;
 import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
@@ -29,10 +33,11 @@ import com.jobtrack.web.form.RegistrationForm;
 import com.jobtrack.web.form.StatusChangeForm;
 
 /**
- * Creates the demo account with realistic sample data: applications in different stages with their status
- * history, past and upcoming interviews, and an interview question bank (some questions public, so the
- * interview hall is not empty for visitors), with technical questions tagged by programming language.
+ * Creates the demo account with a small set of realistic sample data: 4 applications in different stages with
+ * their status history and past and upcoming interviews, and 5 interview questions (3 public, so the interview hall
+ * is not empty for visitors; technical ones tagged by programming language).
  * <p>Everything goes through the normal services, so the sample data obeys the same business rules as user data.
+ * The public sample questions are published once and kept across resets (see {@link #reset}).
  * Times are relative to "now", so the dashboard always shows recent activity and upcoming interviews.
  * Company names are fictional.
  */
@@ -76,19 +81,49 @@ public class DemoData {
         userService.updateProfile(me, profile);
 
         addApplications(me);
-        addQuestions(me);
+        addQuestions(me, Set.of());
         return true;
     }
 
     /**
-     * Deletes the demo user with all their applications, documents (and files), interviews and questions,
-     * then creates it again with fresh sample data. {@code admin} performs the delete.
+     * Resets the demo account to the sample data, keeping the account itself.
+     * <ul>
+     *   <li>Applications, status history, interviews and documents (and their files) are deleted and re-created.</li>
+     *   <li>The public sample questions are kept as they are, so their ids and share dates in the interview hall
+     *       never change and questions real users share later stay above them. The demo account cannot edit or
+     *       publish public questions, so they are still the original text.</li>
+     *   <li>Every other question (private ones, and public ones a visitor deleted or made private) is removed,
+     *       and missing sample questions are added again.</li>
+     * </ul>
+     * Creates the account if it does not exist.
      */
-    public void reset(String email, String password, AppUserDetails admin) {
-        users.findByEmailIgnoreCase(UserService.normalizeEmail(email))
+    public void reset(String email, String password) {
+        User user = users.findByEmailIgnoreCase(UserService.normalizeEmail(email))
                 .filter(u -> !u.isAdmin())
-                .ifPresent(u -> userService.deleteUser(u.getId(), admin));
-        createIfMissing(email, password);
+                .orElse(null);
+        if (user == null) {
+            createIfMissing(email, password);
+            return;
+        }
+        AppUserDetails me = new AppUserDetails(user);
+        userService.deleteApplicationData(user.getId());
+        addApplications(me);
+
+        Set<String> publicSamples = new HashSet<>();
+        for (Seed q : QUESTIONS) {
+            if (q.isPublic()) {
+                publicSamples.add(q.text());
+            }
+        }
+        Set<String> kept = new HashSet<>();
+        for (InterviewQuestion q : questions.search(me, null, null, null, null)) {
+            boolean untouchedSample = q.isPublic() && publicSamples.contains(q.getQuestionText())
+                    && kept.add(q.getQuestionText()); // a duplicate text is removed
+            if (!untouchedSample) {
+                questions.delete(q.getId(), me);
+            }
+        }
+        addQuestions(me, kept);
     }
 
     // ------------------------------------------------------------------ Applications
@@ -96,54 +131,36 @@ public class DemoData {
     private void addApplications(AppUserDetails me) {
         LocalDateTime now = applications.now();
 
-        // Offer after three interview rounds
+        // Offer after two interview rounds
         UUID offer = application(me, "Kowhai Software", "Graduate Software Engineer", "Wellington", "SEEK",
-                daysAgo(now, 38), ApplicationStatus.APPLIED,
+                daysAgo(now, 30), ApplicationStatus.APPLIED,
                 "Graduate programme for Java and TypeScript developers. Work in a product team on a SaaS platform used by small businesses across New Zealand.",
                 "Referred by a friend from the uni coding club.");
-        status(me, offer, ApplicationStatus.ASSESSMENT, at(now, 33, 9), "Online coding test (90 minutes)");
-        status(me, offer, ApplicationStatus.INTERVIEWING, at(now, 28, 16), "Invited to interviews");
-        interview(me, offer, 1, InterviewType.PHONE_SCREEN, at(now, 26, 11), 30, "Talent acquisition partner",
-                "Phone", InterviewOutcome.PASSED, "Motivation, visa and availability. Asked why I chose backend development.");
-        interview(me, offer, 2, InterviewType.TECHNICAL, at(now, 20, 14), 90, "Two senior engineers", "Video call",
+        status(me, offer, ApplicationStatus.INTERVIEWING, at(now, 22, 16), "Invited to interviews");
+        interview(me, offer, 1, InterviewType.TECHNICAL, at(now, 18, 14), 90, "Two senior engineers", "Video call",
                 InterviewOutcome.PASSED, "Live coding: designing a REST endpoint and fixing an N+1 query. Should explain my reasoning out loud earlier.");
-        interview(me, offer, 3, InterviewType.FINAL, at(now, 12, 10), 60, "Engineering manager", "Onsite, Wellington office",
+        interview(me, offer, 2, InterviewType.FINAL, at(now, 10, 10), 60, "Engineering manager", "Onsite, Wellington office",
                 InterviewOutcome.PASSED, "Behavioural questions and a team meet-and-greet.");
         status(me, offer, ApplicationStatus.OFFER, at(now, 4, 15), "Verbal offer, written offer to follow");
 
         // Interviewing, next round is coming up
         UUID harbour = application(me, SAMPLE_COMPANY, "Junior Java Developer", "Auckland", "LinkedIn",
-                daysAgo(now, 18), ApplicationStatus.APPLIED,
+                daysAgo(now, 14), ApplicationStatus.APPLIED,
                 "Spring Boot microservices for online payments. Experience with SQL, REST APIs and Git required; Docker is a plus.",
                 null);
-        status(me, harbour, ApplicationStatus.INTERVIEWING, at(now, 9, 13), "Recruiter called to book a first interview");
-        interview(me, harbour, 1, InterviewType.VIDEO, at(now, 6, 10), 45, "Hiring manager", "Microsoft Teams",
+        status(me, harbour, ApplicationStatus.INTERVIEWING, at(now, 7, 13), "Recruiter called to book a first interview");
+        interview(me, harbour, 1, InterviewType.VIDEO, at(now, 5, 10), 45, "Hiring manager", "Microsoft Teams",
                 InterviewOutcome.PASSED, "Walked through my JobTrack project. They liked the access checks and the tests.");
         interview(me, harbour, 2, InterviewType.TECHNICAL, now.plusDays(3).withHour(14).withMinute(0).truncatedTo(ChronoUnit.MINUTES),
                 60, "Tech lead", "Microsoft Teams", InterviewOutcome.PENDING, "Prepare: transactions, indexes, Spring Security basics.");
 
-        // Online assessment stage
-        UUID assessment = application(me, "Southern Health Tech", "Graduate Developer", "Christchurch", "Company website",
-                daysAgo(now, 10), ApplicationStatus.APPLIED, null, null);
-        status(me, assessment, ApplicationStatus.ASSESSMENT, at(now, 3, 9), "HackerRank test, due in 5 days");
-
-        // Just applied
-        application(me, "Tui Logistics", "Associate Software Developer", "Auckland", "SEEK",
-                daysAgo(now, 2), ApplicationStatus.APPLIED,
-                "Full-stack role on the warehouse management system (Java, React, PostgreSQL).", null);
-
         // Rejected after the first interview
         UUID rejected = application(me, "Pohutukawa Games", "Junior Backend Engineer", "Wellington", "LinkedIn",
-                daysAgo(now, 30), ApplicationStatus.APPLIED, null, null);
-        status(me, rejected, ApplicationStatus.INTERVIEWING, at(now, 22, 10), null);
-        interview(me, rejected, 1, InterviewType.VIDEO, at(now, 19, 15), 45, "Backend lead", "Google Meet",
+                daysAgo(now, 25), ApplicationStatus.APPLIED, null, null);
+        status(me, rejected, ApplicationStatus.INTERVIEWING, at(now, 20, 10), null);
+        interview(me, rejected, 1, InterviewType.VIDEO, at(now, 17, 15), 45, "Backend lead", "Google Meet",
                 InterviewOutcome.FAILED, "Struggled with a concurrency question. Review threads, locks and race conditions.");
-        status(me, rejected, ApplicationStatus.REJECTED, at(now, 14, 11), "Feedback: strong communication, needs more depth in concurrency");
-
-        // No response
-        UUID silent = application(me, "Kauri Cloud", "Graduate DevOps Engineer", "Remote (NZ)", "SEEK",
-                daysAgo(now, 45), ApplicationStatus.APPLIED, null, null);
-        status(me, silent, ApplicationStatus.NO_RESPONSE, at(now, 15, 9), "No reply after a month");
+        status(me, rejected, ApplicationStatus.REJECTED, at(now, 12, 11), "Feedback: strong communication, needs more depth in concurrency");
 
         // Saved for later
         application(me, "Matai Data", "Junior Data Engineer", "Auckland", "Indeed", null, ApplicationStatus.SAVED,
@@ -196,80 +213,56 @@ public class DemoData {
 
     // ------------------------------------------------------------------ Interview questions
 
-    private void addQuestions(AppUserDetails me) {
-        QuestionCategory t = QuestionCategory.TECHNICAL;
-        QuestionCategory b = QuestionCategory.BEHAVIORAL;
-        Visibility pub = Visibility.PUBLIC;
-        Visibility priv = Visibility.PRIVATE;
+    private static final QuestionCategory T = QuestionCategory.TECHNICAL;
+    private static final QuestionCategory B = QuestionCategory.BEHAVIORAL;
+    private static final Visibility PUB = Visibility.PUBLIC;
+    private static final Visibility PRIV = Visibility.PRIVATE;
 
-        // Public: shown in the interview hall (only the question text; answers stay private)
-        question(me, t, ProgrammingLanguage.JAVA, SAMPLE_PUBLIC_QUESTION,
-                "Loading a list of entities and then touching a lazy association on each one runs 1 query for the list plus N queries. "
-                        + "Fix with a fetch join, an entity graph or batch fetching, and check the SQL log or a statement counter.",
-                AnswerRating.GOOD, pub);
-        question(me, t, ProgrammingLanguage.JAVA, "What is the difference between an abstract class and an interface in Java?",
-                "An interface defines a contract and supports multiple inheritance of type; since Java 8 it can have default methods. "
-                        + "An abstract class can hold state and constructors, but a class can extend only one.",
-                AnswerRating.GOOD, pub);
-        question(me, t, ProgrammingLanguage.JAVA, "How does a HashMap work internally, and what happens on a hash collision?",
-                "Buckets array indexed by the key hash. Collisions go into a linked list that turns into a tree after 8 entries. "
-                        + "Resizes when the load factor (0.75) is exceeded. Keys need consistent equals and hashCode.",
-                AnswerRating.OK, pub);
-        question(me, t, ProgrammingLanguage.JAVA, "What does @Transactional do in Spring, and when does it not take effect?",
-                "Wraps the method in a transaction through a proxy. Self-invocation inside the same class bypasses the proxy; "
-                        + "by default only unchecked exceptions trigger a rollback.",
-                AnswerRating.OK, pub);
-        question(me, t, ProgrammingLanguage.SQL, "What is the difference between INNER JOIN and LEFT JOIN? Give an example.", null, null, pub);
-        question(me, t, ProgrammingLanguage.SQL, "How do database indexes speed up queries, and what do they cost?", null, null, pub);
-        question(me, t, ProgrammingLanguage.GENERAL, "What is the difference between authentication and authorisation?",
-                "Authentication: who you are (sign in). Authorisation: what you are allowed to do (roles, ownership checks).",
-                AnswerRating.GOOD, pub);
-        question(me, t, ProgrammingLanguage.JAVA, "How does a CSRF attack work, and how does Spring Security protect against it?", null, null, pub);
-        question(me, t, ProgrammingLanguage.GENERAL, "What is the difference between a process and a thread?", null, null, pub);
-        question(me, t, ProgrammingLanguage.GENERAL, "Reverse a singly linked list. What are the time and space complexity?",
-                "Iterate with prev, current and next pointers: O(n) time, O(1) space.", AnswerRating.GOOD, pub);
-        question(me, t, ProgrammingLanguage.GENERAL, "What happens when you type a URL into the browser and press Enter?", null, null, pub);
-        question(me, t, ProgrammingLanguage.GENERAL, "Design a REST API for a to-do list. Which HTTP methods and status codes would you use?", null, null, pub);
-        question(me, t, ProgrammingLanguage.GENERAL, "What is Docker, and how is a container different from a virtual machine?", null, null, pub);
-        question(me, t, ProgrammingLanguage.CSHARP, "What is the difference between IEnumerable and IQueryable in C#?", null, null, pub);
-        question(me, t, ProgrammingLanguage.CSHARP, "Explain async and await in C#. What does ConfigureAwait(false) do?", null, null, pub);
-        question(me, t, ProgrammingLanguage.PYTHON, "What is the difference between a list and a tuple in Python?",
-                "Lists are mutable, tuples are immutable (and hashable if their items are), so tuples can be dict keys.",
-                AnswerRating.GOOD, pub);
-        question(me, t, ProgrammingLanguage.PYTHON, "What are Python decorators, and when would you write one?", null, null, pub);
-        question(me, t, ProgrammingLanguage.JAVASCRIPT, "Explain the JavaScript event loop. How do promises and setTimeout differ?", null, null, pub);
-        question(me, t, ProgrammingLanguage.JAVASCRIPT, "What is the difference between == and === in JavaScript?",
-                "== converts types before comparing, === does not. Prefer === to avoid surprises.", AnswerRating.GOOD, pub);
-        question(me, b, null, "Tell me about yourself.",
-                "Present: final-year software student building full-stack Java projects. Past: what led me to software. "
-                        + "Future: why this graduate role is the next step. Keep it under two minutes.",
-                AnswerRating.OK, pub);
-        question(me, b, null, "Tell me about a time you disagreed with a teammate. How did you handle it?", null, null, pub);
-        question(me, b, null, "Describe a project you are proud of and your role in it.",
-                "JobTrack: designed the data model and access checks, wrote integration tests, set up CI/CD to a VPS.",
-                AnswerRating.GOOD, pub);
-        question(me, b, null, "Tell me about a mistake you made and what you learned from it.", null, null, pub);
-        question(me, b, null, "How do you prioritise when you have several deadlines at the same time?", null, null, pub);
-        question(me, b, null, "Tell me about a time you had to learn a new technology quickly.", null, null, pub);
+    /** One sample question of the demo account's question bank. */
+    private record Seed(QuestionCategory category, ProgrammingLanguage language, String text, String answer,
+                        AnswerRating rating, Visibility visibility) {
 
-        // Private: only in the demo user's own question bank
-        question(me, t, ProgrammingLanguage.SQL, "Explain optimistic and pessimistic locking. When would you use each?",
-                "Optimistic: version column, fail on conflict, good for rare conflicts. Pessimistic: lock rows up front (SELECT ... FOR UPDATE).",
-                AnswerRating.POOR, priv);
-        question(me, b, null, "Why do you want to work for us?",
-                "Research the company first: product, values, tech stack. Connect them to my projects and what I want to learn.",
-                AnswerRating.OK, priv);
-        question(me, b, null, "Where do you see yourself in five years?", null, null, priv);
+        boolean isPublic() {
+            return visibility == Visibility.PUBLIC;
+        }
     }
 
-    private void question(AppUserDetails me, QuestionCategory category, ProgrammingLanguage language, String text,
-                          String answer, AnswerRating rating, Visibility visibility) {
-        QuestionForm f = QuestionForm.withCategory(category);
-        f.setLanguage(language);
-        f.setQuestionText(text);
-        f.setAnswerText(answer);
-        f.setSelfRating(rating);
-        f.setVisibility(visibility);
-        questions.create(f, me);
+    /** The demo account's question bank. Public ones fill the interview hall (question text only). */
+    private static final List<Seed> QUESTIONS = List.of(
+            // Public: shown in the interview hall (only the question text; answers stay private).
+            // Kept to a few so the sample questions do not crowd out the ones real users share.
+            new Seed(T, ProgrammingLanguage.JAVA, SAMPLE_PUBLIC_QUESTION,
+                    "Loading a list of entities and then touching a lazy association on each one runs 1 query for the list plus N queries. "
+                            + "Fix with a fetch join, an entity graph or batch fetching, and check the SQL log or a statement counter.",
+                    AnswerRating.GOOD, PUB),
+            new Seed(T, ProgrammingLanguage.PYTHON, "What is the difference between a list and a tuple in Python?",
+                    "Lists are mutable, tuples are immutable (and hashable if their items are), so tuples can be dict keys.",
+                    AnswerRating.GOOD, PUB),
+            new Seed(B, null, "Tell me about a time you disagreed with a teammate. How did you handle it?", null, null, PUB),
+
+            // Private: only in the demo user's own question bank
+            new Seed(T, ProgrammingLanguage.SQL, "Explain optimistic and pessimistic locking. When would you use each?",
+                    "Optimistic: version column, fail on conflict, good for rare conflicts. Pessimistic: lock rows up front (SELECT ... FOR UPDATE).",
+                    AnswerRating.POOR, PRIV),
+            new Seed(B, null, "Tell me about yourself.",
+                    "Present: final-year software student building full-stack Java projects. Past: what led me to software. "
+                            + "Future: why this graduate role is the next step. Keep it under two minutes.",
+                    AnswerRating.OK, PRIV)
+    );
+
+    /** Adds the sample questions, except public ones whose text is in {@code keep} (they are still there). */
+    private void addQuestions(AppUserDetails me, Set<String> keep) {
+        for (Seed q : QUESTIONS) {
+            if (q.isPublic() && keep.contains(q.text())) {
+                continue;
+            }
+            QuestionForm f = QuestionForm.withCategory(q.category());
+            f.setLanguage(q.language());
+            f.setQuestionText(q.text());
+            f.setAnswerText(q.answer());
+            f.setSelfRating(q.rating());
+            f.setVisibility(q.visibility());
+            questions.create(f, me);
+        }
     }
 }

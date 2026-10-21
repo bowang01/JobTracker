@@ -41,6 +41,7 @@ class PersistenceAcrossRestartTest {
             "--spring.datasource.url=jdbc:h2:file:" + db + ";MODE=MySQL;DATABASE_TO_LOWER=TRUE",
             "--spring.datasource.username=sa",
             "--spring.datasource.password=",
+            "--jobtrack.demo.enabled=false",
             "--jobtrack.storage.dir=" + dataDir.resolve("files").toAbsolutePath(),
             "--jobtrack.admin.password=AdminPass123",
             "--spring.devtools.restart.enabled=false"

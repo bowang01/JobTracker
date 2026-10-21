@@ -52,6 +52,8 @@ public abstract class IntegrationTestBase {
         registry.add("spring.datasource.password", () -> "");
         registry.add("jobtrack.storage.dir", STORAGE_DIR::toString);
         registry.add("jobtrack.admin.password", () -> "AdminPass123");
+        // No demo account in tests (the tests share one database); DemoAccountTest calls DemoData directly
+        registry.add("jobtrack.demo.enabled", () -> "false");
     }
 
     @Autowired

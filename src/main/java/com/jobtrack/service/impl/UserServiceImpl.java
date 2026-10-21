@@ -153,12 +153,18 @@ public class UserServiceImpl implements UserService {
         if (u.isAdmin() && u.isEnabled() && users.countByRoleAndEnabledTrue(Role.ADMIN) <= 1) {
             throw new BusinessException("At least one active administrator must remain");
         }
+        deleteApplicationData(userId);
+        users.delete(u); // history rows elsewhere whose changed_by points at this user are handled by ON DELETE SET NULL
+    }
+
+    @Transactional
+    @Override
+    public void deleteApplicationData(UUID userId) {
         List<String> files = documents.findStoredFilenamesByOwnerId(userId);
         history.deleteByOwnerId(userId);
         interviews.deleteByOwnerId(userId);
         documents.deleteByOwnerId(userId);
         applications.deleteByOwnerId(userId);
-        users.delete(u); // history rows elsewhere whose changed_by points at this user are handled by ON DELETE SET NULL
         storage.deleteAfterCommit(files);
     }
 }

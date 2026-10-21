@@ -36,4 +36,10 @@ public interface UserService {
 
     /** Deletes the user and all their applications, history, interviews and documents; files are removed after commit. */
     void deleteUser(UUID userId, AppUserDetails me);
+
+    /**
+     * Deletes all of a user's applications with their history, interviews and documents (files after commit),
+     * but keeps the account and its interview questions. Used to reset the demo account.
+     */
+    void deleteApplicationData(UUID userId);
 }

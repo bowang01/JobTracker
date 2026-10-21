@@ -205,14 +205,18 @@ MySQL has no published port.
 
 For visitors (for example recruiters looking at the project), JobTrack can run a shared demo account:
 
-* `JOBTRACK_DEMO_ENABLED=true` (on in `docker-compose.prod.yml`, off by default) creates a regular user
-  `JOBTRACK_DEMO_EMAIL` / `JOBTRACK_DEMO_PASSWORD` on start, with fictional sample applications in every stage,
-  status history, past and upcoming interviews and an interview question bank (most questions public, so the hall is not empty).
+* On by default (`JOBTRACK_DEMO_ENABLED=false` turns it off). The sample data is kept small, 4 applications and
+  5 questions of which 3 are public, so it stays a small part of the interview hall and the admin statistics.
+* When enabled, JobTrack creates a regular user
+  `JOBTRACK_DEMO_EMAIL` / `JOBTRACK_DEMO_PASSWORD` on start, with fictional sample applications (offer, interviewing,
+  rejected, saved), status history, past and upcoming interviews and a small interview question bank.
 * Visitors who open `/` land on the interview hall, which starts with a short introduction and a **Try the demo**
   button (one click signs in to the demo account); the sign-in page has the same button.
 * Because everyone shares it, the demo account cannot change its email or password and cannot share questions to the hall.
-* Every night at 04:00 (NZ time) the demo user is deleted with all its data and files and created again
-  (`JOBTRACK_DEMO_RESET_CRON`, Spring cron format; `-` turns it off). The reset needs an administrator to exist.
+* Every night at 04:00 (NZ time) the demo data is reset (`JOBTRACK_DEMO_RESET_CRON`, Spring cron format; `-` turns it off):
+  applications, interviews, documents and files are re-created, private questions are restored, and public sample
+  questions a visitor deleted come back. Untouched public sample questions are kept, so they keep their place and
+  share date in the interview hall and do not push real users' shared questions down.
 
 One-time setup:
 
