@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import com.jobtrack.domain.AnswerRating;
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.User;
 import com.jobtrack.domain.Visibility;
@@ -35,8 +36,8 @@ public class InterviewQuestionRepositoryCustomImpl implements InterviewQuestionR
     private EntityManager em;
 
     @Override
-    public List<InterviewQuestion> searchOwn(UUID ownerId, QuestionCategory category, AnswerRating rating,
-                                             String keyword) {
+    public List<InterviewQuestion> searchOwn(UUID ownerId, QuestionCategory category, ProgrammingLanguage language,
+                                             AnswerRating rating, String keyword) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<InterviewQuestion> query = cb.createQuery(InterviewQuestion.class);
         Root<InterviewQuestion> q = query.from(InterviewQuestion.class);
@@ -45,6 +46,9 @@ public class InterviewQuestionRepositoryCustomImpl implements InterviewQuestionR
         ps.add(cb.equal(q.get("owner").get("id"), ownerId));
         if (category != null) {
             ps.add(cb.equal(q.get("category"), category));
+        }
+        if (language != null) {
+            ps.add(cb.equal(q.get("language"), language));
         }
         if (rating != null) {
             ps.add(cb.equal(q.get("selfRating"), rating));
@@ -61,27 +65,31 @@ public class InterviewQuestionRepositoryCustomImpl implements InterviewQuestionR
     }
 
     @Override
-    public Page<InterviewQuestion> searchPublic(QuestionCategory category, String keyword, Pageable pageable) {
+    public Page<InterviewQuestion> searchPublic(QuestionCategory category, ProgrammingLanguage language, String keyword,
+                                                Pageable pageable) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         String like = CriteriaSupport.containsPattern(keyword);
 
         CriteriaQuery<InterviewQuestion> query = cb.createQuery(InterviewQuestion.class);
         Root<InterviewQuestion> q = query.from(InterviewQuestion.class);
-        query.select(q).where(publicConditions(cb, q, category, like));
+        query.select(q).where(publicConditions(cb, q, category, language, like));
 
         CriteriaQuery<Long> count = cb.createQuery(Long.class);
         Root<InterviewQuestion> cq = count.from(InterviewQuestion.class);
-        count.select(cb.count(cq)).where(publicConditions(cb, cq, category, like));
+        count.select(cb.count(cq)).where(publicConditions(cb, cq, category, language, like));
 
         return CriteriaSupport.page(em, query, q, count, pageable);
     }
 
     private static Predicate[] publicConditions(CriteriaBuilder cb, Root<InterviewQuestion> q,
-                                                QuestionCategory category, String like) {
+                                                QuestionCategory category, ProgrammingLanguage language, String like) {
         List<Predicate> ps = new ArrayList<>();
         ps.add(cb.equal(q.get("visibility"), Visibility.PUBLIC));
         if (category != null) {
             ps.add(cb.equal(q.get("category"), category));
+        }
+        if (language != null) {
+            ps.add(cb.equal(q.get("language"), language));
         }
         if (like != null) {
             ps.add(CriteriaSupport.contains(cb, q.get("questionText"), like));
@@ -91,7 +99,7 @@ public class InterviewQuestionRepositoryCustomImpl implements InterviewQuestionR
 
     @Override
     @SuppressWarnings("unchecked")
-    public Page<InterviewQuestion> searchAll(QuestionCategory category, Visibility visibility, UUID ownerId,
+    public Page<InterviewQuestion> searchAll(QuestionCategory category, ProgrammingLanguage language, Visibility visibility, UUID ownerId,
                                              String keyword, Pageable pageable) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         String like = CriteriaSupport.containsPattern(keyword);
@@ -100,21 +108,25 @@ public class InterviewQuestionRepositoryCustomImpl implements InterviewQuestionR
         Root<InterviewQuestion> q = query.from(InterviewQuestion.class);
         // Fetch the owner in the same query (the admin view shows the owner's email)
         Join<InterviewQuestion, User> owner = (Join<InterviewQuestion, User>) q.<InterviewQuestion, User>fetch("owner", JoinType.INNER);
-        query.select(q).where(allConditions(cb, q, owner, category, visibility, ownerId, like));
+        query.select(q).where(allConditions(cb, q, owner, category, language, visibility, ownerId, like));
 
         CriteriaQuery<Long> count = cb.createQuery(Long.class);
         Root<InterviewQuestion> cq = count.from(InterviewQuestion.class);
         Join<InterviewQuestion, User> countOwner = cq.join("owner", JoinType.INNER);
-        count.select(cb.count(cq)).where(allConditions(cb, cq, countOwner, category, visibility, ownerId, like));
+        count.select(cb.count(cq)).where(allConditions(cb, cq, countOwner, category, language, visibility, ownerId, like));
 
         return CriteriaSupport.page(em, query, q, count, pageable);
     }
 
     private static Predicate[] allConditions(CriteriaBuilder cb, Root<InterviewQuestion> q, Join<InterviewQuestion, User> owner,
-                                             QuestionCategory category, Visibility visibility, UUID ownerId, String like) {
+                                             QuestionCategory category, ProgrammingLanguage language, Visibility visibility,
+                                             UUID ownerId, String like) {
         List<Predicate> ps = new ArrayList<>();
         if (category != null) {
             ps.add(cb.equal(q.get("category"), category));
+        }
+        if (language != null) {
+            ps.add(cb.equal(q.get("language"), language));
         }
         if (visibility != null) {
             ps.add(cb.equal(q.get("visibility"), visibility));

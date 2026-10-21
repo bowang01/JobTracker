@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 
@@ -15,6 +16,7 @@ import com.jobtrack.domain.Visibility;
  */
 public record PublicQuestion(UUID id,
                              QuestionCategory category,
+                             ProgrammingLanguage language,
                              String questionText,
                              LocalDateTime shownDate,
                              boolean mine,
@@ -24,13 +26,13 @@ public record PublicQuestion(UUID id,
 
     /** View for a regular user or a visitor (viewerId null): anonymous. */
     public static PublicQuestion forUser(InterviewQuestion q, UUID viewerId) {
-        return new PublicQuestion(q.getId(), q.getCategory(), q.getQuestionText(), q.getPublishedAt(),
+        return new PublicQuestion(q.getId(), q.getCategory(), q.getLanguage(), q.getQuestionText(), q.getPublishedAt(),
                 viewerId != null && q.getOwner().getId().equals(viewerId), q.getVisibility(), null, null);
     }
 
     /** View for an admin: includes private questions, with visibility and owner (still no answer). */
     public static PublicQuestion forAdmin(InterviewQuestion q) {
-        return new PublicQuestion(q.getId(), q.getCategory(), q.getQuestionText(),
+        return new PublicQuestion(q.getId(), q.getCategory(), q.getLanguage(), q.getQuestionText(),
                 q.getPublishedAt() != null ? q.getPublishedAt() : q.getCreatedAt(),
                 false, q.getVisibility(), q.getOwner().getId(), q.getOwner().getEmail());
     }

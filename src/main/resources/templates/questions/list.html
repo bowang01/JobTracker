@@ -34,6 +34,15 @@
                 <label for="q">Search</label>
                 <input type="text" id="q" name="q" th:value="${q}" placeholder="Question or answer">
             </div>
+            <!-- Technical questions only, so not offered on the Behavioral tab -->
+            <div class="field" th:unless="${category != null and category.name() == 'BEHAVIORAL'}">
+                <label for="language">Language</label>
+                <select id="language" name="language">
+                    <option value="">All languages</option>
+                    <option th:each="l : ${languages}" th:value="${l}" th:text="${l.label}"
+                            th:selected="${l == language}"></option>
+                </select>
+            </div>
             <div class="field">
                 <label for="rating">My answer</label>
                 <select id="rating" name="rating">
@@ -58,6 +67,7 @@
         <article class="q-item" th:each="item : ${questions}">
             <div class="q-meta">
                 <span class="badge" th:classappend="${item.category.css}" th:text="${item.category.label}"></span>
+                <span class="badge lang" th:if="${item.language}" th:text="${item.language.label}"></span>
                 <span class="badge" th:if="${item.selfRating}" th:classappend="${item.selfRating.css}"
                       th:text="${item.selfRating.label}"></span>
                 <span class="badge vis-public" th:if="${item.isPublic()}" title="Shown in the interview hall (your answer stays private)">Public</span>

@@ -567,3 +567,36 @@ details.add-box[open] summary { margin-bottom: 12px; }
 
 .error-page { text-align: center; padding: 64px 20px; }
 .error-page .code { font-size: 4rem; font-weight: 800; color: var(--line-2); line-height: 1; }
+
+/* =====================================================================
+   Visitors' landing: the top of the interview hall (what JobTrack is + try the demo)
+   ===================================================================== */
+.landing {
+  position: relative; overflow: hidden; display: grid; gap: 24px;
+  background: var(--shell); color: var(--shell-ink); border-radius: var(--radius);
+  padding: 28px 22px; margin-bottom: 28px;
+}
+.landing::before {
+  content: ""; position: absolute; width: 520px; height: 520px; right: -220px; top: -280px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(111, 209, 180, .16), transparent 65%); pointer-events: none;
+}
+.landing > * { position: relative; }
+.landing .auth-lede { max-width: 540px; margin-bottom: 20px; }
+.landing-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.landing-actions .btn-on-dark { margin-left: 0; }
+.btn-ghost-dark { background: transparent; border-color: rgba(255, 255, 255, .24); color: #fff; }
+.btn-ghost-dark:hover { border-color: rgba(255, 255, 255, .55); color: #fff; }
+.landing-note { margin: 14px 0 0; font-size: .88rem; color: #a9b5b0; }
+.landing-features { margin: 0; align-content: center; }
+@media (min-width: 900px) {
+  .landing { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: center; gap: 40px; padding: 40px 44px; }
+  .landing .auth-headline { font-size: clamp(1.9rem, 2.6vw, 2.3rem); }
+}
+
+/* Sign-in page: one-click demo account */
+.demo-box { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.demo-box p { margin: 0; color: var(--ink-2); font-size: .92rem; }
+
+/* Programming language of a technical question */
+.badge.lang { background: #e8edf6; color: #2f4b7c; }
+[data-technical-only][hidden] { display: none; }

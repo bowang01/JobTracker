@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 import com.jobtrack.security.AppUserDetails;
@@ -46,9 +47,11 @@ public class HallController {
         HallFilter f = filter(session);
         // Only admins can filter by visibility (visitors and users only ever see public questions)
         Visibility vis = me != null && me.isAdmin() ? f.getVisibility() : null;
-        model.addAttribute("page", service.hall(me, f.getCategory(), vis, f.getQ(), f.getPage()));
+        model.addAttribute("page", service.hall(me, f.getCategory(), f.getLanguage(), vis, f.getQ(), f.getPage()));
         model.addAttribute("counts", service.hallCounts(me));
         model.addAttribute("category", f.getCategory());
+        model.addAttribute("language", f.getLanguage());
+        model.addAttribute("languages", ProgrammingLanguage.values());
         model.addAttribute("visibility", vis);
         model.addAttribute("visibilities", Visibility.values());
         model.addAttribute("q", f.getQ());
@@ -65,9 +68,11 @@ public class HallController {
 
     @PostMapping("/filter")
     public String applyFilter(@RequestParam(required = false) String q,
+                              @RequestParam(required = false) String language,
                               @RequestParam(required = false) String visibility, HttpSession session) {
         HallFilter f = filter(session);
         f.setQ(q);
+        f.setLanguage(parseLanguage(language));
         f.setVisibility(parseVisibility(visibility));
         f.setPage(0);
         return "redirect:/hall";
@@ -83,6 +88,7 @@ public class HallController {
     public String reset(HttpSession session) {
         HallFilter f = filter(session);
         f.setQ(null);
+        f.setLanguage(null);
         f.setVisibility(null);
         f.setPage(0);
         return "redirect:/hall";
@@ -118,6 +124,17 @@ public class HallController {
         }
         try {
             return Visibility.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static ProgrammingLanguage parseLanguage(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return ProgrammingLanguage.valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
             return null;
         }

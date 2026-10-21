@@ -28,6 +28,15 @@
                 <span class="hint">Technical: coding, system design, CS fundamentals. Behavioral: teamwork, conflict, motivation ("Tell me about a time...").</span>
                 <span class="field-error" th:if="${#fields.hasErrors('category')}" th:errors="*{category}"></span>
             </div>
+            <!-- Hidden by app.js while "Behavioral" is selected; the server ignores it for behavioral questions anyway -->
+            <div class="field" data-technical-only>
+                <label for="language">Language</label>
+                <select th:field="*{language}">
+                    <option value="">Not specified</option>
+                    <option th:each="l : ${languages}" th:value="${l}" th:text="${l.label}"></option>
+                </select>
+                <span class="hint">Which language is this technical question about? Helps when filtering.</span>
+            </div>
             <div class="field full" th:classappend="${#fields.hasErrors('questionText')} ? 'has-error'">
                 <label for="questionText" class="req">Question</label>
                 <textarea th:field="*{questionText}" maxlength="5000" autofocus

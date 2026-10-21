@@ -2,6 +2,7 @@ package com.jobtrack.web.state;
 
 import java.io.Serializable;
 
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 
@@ -9,9 +10,19 @@ import com.jobtrack.domain.Visibility;
 public class HallFilter implements Serializable {
 
     private QuestionCategory category;
+    /** Technical questions about this language only; null = any. */
+    private ProgrammingLanguage language;
     private Visibility visibility;
     private String q;
     private int page;
+
+    public ProgrammingLanguage getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(ProgrammingLanguage language) {
+        this.language = language;
+    }
 
     public QuestionCategory getCategory() {
         return category;

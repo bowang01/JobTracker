@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.jobtrack.config.DemoAccount;
 import com.jobtrack.domain.AnswerRating;
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 import com.jobtrack.security.AppUserDetails;
@@ -34,15 +36,27 @@ import jakarta.validation.Valid;
 @RequestMapping("/questions")
 public class QuestionController {
 
-    private final QuestionService service;
+    /** The interview hall is the visitors' landing page, so the shared demo account cannot publish to it. */
+    static final String DEMO_NO_SHARING = "The demo account cannot share questions to the interview hall. Keep it private, or create your own account to share.";
 
-    public QuestionController(QuestionService service) {
+    private final QuestionService service;
+    private final DemoAccount demo;
+
+    public QuestionController(QuestionService service, DemoAccount demo) {
         this.service = service;
+        this.demo = demo;
+    }
+
+    private void rejectDemoSharing(QuestionForm form, BindingResult br, AppUserDetails me) {
+        if (demo.isDemo(me) && form.getVisibility() == Visibility.PUBLIC) {
+            br.rejectValue("visibility", "demo", DEMO_NO_SHARING);
+        }
     }
 
     @ModelAttribute
     void referenceData(Model model) {
         model.addAttribute("categories", QuestionCategory.values());
+        model.addAttribute("languages", ProgrammingLanguage.values());
         model.addAttribute("ratings", AnswerRating.values());
         model.addAttribute("visibilities", Visibility.values());
     }
@@ -51,11 +65,12 @@ public class QuestionController {
     @GetMapping
     public String list(HttpSession session, @AuthenticationPrincipal AppUserDetails me, Model model) {
         QuestionFilter f = filter(session);
-        model.addAttribute("questions", service.search(me, f.getCategory(), f.getRating(), f.getQ()));
+        model.addAttribute("questions", service.search(me, f.getCategory(), f.getLanguage(), f.getRating(), f.getQ()));
         model.addAttribute("counts", service.counts(me));
         model.addAttribute("filter", f);
         model.addAttribute("category", f.getCategory());
         model.addAttribute("rating", f.getRating());
+        model.addAttribute("language", f.getLanguage());
         model.addAttribute("q", f.getQ());
         return "questions/list";
     }
@@ -67,12 +82,14 @@ public class QuestionController {
         return "redirect:/questions";
     }
 
-    /** Applies the search form (keyword and rating); the current tab is kept. */
+    /** Applies the search form (keyword, language and rating); the current tab is kept. */
     @PostMapping("/filter")
     public String applyFilter(@RequestParam(required = false) String rating,
+                              @RequestParam(required = false) String language,
                               @RequestParam(required = false) String q, HttpSession session) {
         QuestionFilter f = filter(session);
         f.setRating(parse(AnswerRating.class, rating));
+        f.setLanguage(parse(ProgrammingLanguage.class, language));
         f.setQ(q);
         return "redirect:/questions";
     }
@@ -81,13 +98,18 @@ public class QuestionController {
     public String reset(HttpSession session) {
         QuestionFilter f = filter(session);
         f.setRating(null);
+        f.setLanguage(null);
         f.setQ(null);
         return "redirect:/questions";
     }
 
     /** "Share a question" in the interview hall: opens the form with Public preselected (no ?visibility= in the URL). */
     @PostMapping("/share")
-    public String share(RedirectAttributes ra) {
+    public String share(@AuthenticationPrincipal AppUserDetails me, RedirectAttributes ra) {
+        if (demo.isDemo(me)) {
+            ra.addFlashAttribute("error", DEMO_NO_SHARING);
+            return "redirect:/hall";
+        }
         ra.addFlashAttribute("presetVisibility", Visibility.PUBLIC);
         return "redirect:/questions/new";
     }
@@ -111,6 +133,7 @@ public class QuestionController {
     public String create(@Valid @ModelAttribute("form") QuestionForm form, BindingResult br,
                          @RequestParam(required = false) String another, HttpSession session,
                          @AuthenticationPrincipal AppUserDetails me, Model model, RedirectAttributes ra) {
+        rejectDemoSharing(form, br, me);
         if (br.hasErrors()) {
             model.addAttribute("editing", false);
             return "questions/form";
@@ -139,6 +162,7 @@ public class QuestionController {
     public String update(@PathVariable UUID id, @Valid @ModelAttribute("form") QuestionForm form, BindingResult br,
                          HttpSession session,
                          @AuthenticationPrincipal AppUserDetails me, Model model, RedirectAttributes ra) {
+        rejectDemoSharing(form, br, me);
         if (br.hasErrors()) {
             model.addAttribute("question", service.get(id, me)); // also performs the access check
             model.addAttribute("editing", true);

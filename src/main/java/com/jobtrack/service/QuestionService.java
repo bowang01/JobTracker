@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 
 import com.jobtrack.domain.AnswerRating;
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 import com.jobtrack.security.AppUserDetails;
@@ -34,7 +35,9 @@ public interface QuestionService {
         }
     }
 
-    List<InterviewQuestion> search(AppUserDetails me, QuestionCategory category, AnswerRating rating, String keyword);
+    /** {@code language} only narrows technical questions; it is ignored on the Behavioral tab. */
+    List<InterviewQuestion> search(AppUserDetails me, QuestionCategory category, ProgrammingLanguage language,
+                                   AnswerRating rating, String keyword);
 
     Counts counts(AppUserDetails me);
 
@@ -50,7 +53,8 @@ public interface QuestionService {
      * The interview hall. Visitors ({@code me == null}) and regular users see public questions only, anonymously.
      * Admins see every question from every user, public and private, with its owner (never the answer).
      */
-    Page<PublicQuestion> hall(AppUserDetails me, QuestionCategory category, Visibility visibility, String keyword, int page);
+    Page<PublicQuestion> hall(AppUserDetails me, QuestionCategory category, ProgrammingLanguage language,
+                              Visibility visibility, String keyword, int page);
 
     /** Tab counts for the hall: public questions for users, all questions for admins. */
     Counts hallCounts(AppUserDetails me);
@@ -59,7 +63,8 @@ public interface QuestionService {
     InterviewQuestion copyToMine(UUID publicId, AppUserDetails me);
 
     /** Admin monitoring: all users' questions, public and private, without answers or self-ratings. */
-    Page<AdminQuestion> allForAdmin(AppUserDetails me, QuestionCategory category, Visibility visibility, UUID ownerId, String keyword, int page);
+    Page<AdminQuestion> allForAdmin(AppUserDetails me, QuestionCategory category, ProgrammingLanguage language,
+                                    Visibility visibility, UUID ownerId, String keyword, int page);
 
     /** Admin moderation: takes a question out of the hall (makes it private). Never deletes it. */
     void unpublish(UUID publicId, AppUserDetails me);

@@ -24,6 +24,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MvcResult;
 
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 import com.jobtrack.repository.InterviewQuestionRepository;
@@ -47,7 +48,7 @@ class QuestionBankTest extends IntegrationTestBase {
             req.param("visibility", visibility);
         }
         mvc.perform(req).andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("success"));
-        return questions.searchOwn(me.getId(), null, null, null).stream()
+        return questions.searchOwn(me.getId(), null, null, null, null).stream()
                 .filter(q -> q.getQuestionText().equals(text)).findFirst().orElseThrow();
     }
 
@@ -309,5 +310,69 @@ class QuestionBankTest extends IntegrationTestBase {
         // The rest of the site still requires signing in
         mvc.perform(get("/questions")).andExpect(redirectedUrlPattern("**/login"));
         mvc.perform(get("/applications")).andExpect(redirectedUrlPattern("**/login"));
+    }
+
+    // ------------------------------------------------------------------ Programming language of technical questions
+
+    /** Creates a public question with a language over HTTP and returns it. */
+    private InterviewQuestion addWithLanguage(AppUserDetails me, String category, String language, String text) throws Exception {
+        mvc.perform(post("/questions").with(user(me)).with(csrf())
+                        .param("category", category)
+                        .param("language", language)
+                        .param("questionText", text)
+                        .param("visibility", "PUBLIC"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attributeExists("success"));
+        return questions.searchOwn(me.getId(), null, null, null, null).stream()
+                .filter(q -> q.getQuestionText().equals(text)).findFirst().orElseThrow();
+    }
+
+    private static List<String> texts(List<?> items) {
+        return items.stream().map(i -> i instanceof InterviewQuestion q ? q.getQuestionText()
+                : ((PublicQuestion) i).questionText()).toList();
+    }
+
+    @Test
+    void technicalQuestionsCanBeTaggedAndFilteredByLanguage() throws Exception {
+        AppUserDetails me = newUser("lang");
+        String javaText = unique("Explain the Java memory model");
+        String pythonText = unique("Explain the Python GIL");
+        String behavioralText = unique("Tell me about a tight deadline");
+        InterviewQuestion java = addWithLanguage(me, "TECHNICAL", "JAVA", javaText);
+        InterviewQuestion python = addWithLanguage(me, "TECHNICAL", "PYTHON", pythonText);
+        // Behavioral questions never keep a language, even if one is posted
+        InterviewQuestion behavioral = addWithLanguage(me, "BEHAVIORAL", "JAVA", behavioralText);
+        assertThat(java.getLanguage()).isEqualTo(ProgrammingLanguage.JAVA);
+        assertThat(python.getLanguage()).isEqualTo(ProgrammingLanguage.PYTHON);
+        assertThat(behavioral.getLanguage()).isNull();
+
+        // My questions: the language filter keeps only technical questions about that language
+        assertThat(texts(myList(me, "?language=JAVA"))).contains(javaText).doesNotContain(pythonText, behavioralText);
+        assertThat(texts(myList(me, "?category=TECHNICAL&language=PYTHON"))).contains(pythonText).doesNotContain(javaText);
+        // ...and is ignored on the Behavioral tab, which has no languages
+        assertThat(texts(myList(me, "?category=BEHAVIORAL&language=JAVA"))).contains(behavioralText);
+
+        // Interview hall: same filter for everyone else
+        AppUserDetails other = newUser("lang_other");
+        assertThat(texts(hall(other, "?language=PYTHON"))).contains(pythonText).doesNotContain(javaText, behavioralText);
+        assertThat(texts(hall(other, "?language=JAVA"))).contains(javaText).doesNotContain(pythonText);
+
+        // Copying a question from the hall keeps its language
+        mvc.perform(post("/hall/{id}/copy", python.getId()).with(user(other)).with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        InterviewQuestion copy = questions.searchOwn(other.getId(), null, null, null, null).stream()
+                .filter(q -> q.getQuestionText().equals(pythonText)).findFirst().orElseThrow();
+        assertThat(copy.getLanguage()).isEqualTo(ProgrammingLanguage.PYTHON);
+
+        // Admin questions page filters by language too
+        AppUserDetails admin = newAdmin();
+        MockHttpSession session = new MockHttpSession();
+        mvc.perform(post("/admin/questions/filter").with(user(admin)).with(csrf()).session(session)
+                        .param("language", "JAVA").param("q", javaText.substring(javaText.length() - 8)))
+                .andExpect(redirectedUrl("/admin/questions"));
+        mvc.perform(get("/admin/questions").with(user(admin)).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(javaText)))
+                .andExpect(content().string(not(containsString(pythonText))));
     }
 }

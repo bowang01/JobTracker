@@ -6,17 +6,39 @@
 <header th:replace="~{fragments/layout :: nav('hall')}"></header>
 <main class="page">
     <div th:replace="~{fragments/layout :: flash}"></div>
+    <!-- Visitors: the hall is the landing page, so it starts with what JobTrack is and a way in -->
+    <section class="landing" sec:authorize="isAnonymous()" aria-label="About JobTrack">
+        <div class="landing-copy">
+            <h2 class="auth-headline">Your job search, <span>in one place.</span></h2>
+            <p class="auth-lede">Track every application, CV version, status change and interview round, and keep
+                your own bank of interview questions to practise. Works on your laptop and your phone.</p>
+            <div class="landing-actions">
+                <form class="inline" method="post" th:action="@{/login}" th:if="${demoAccount.enabled}">
+                    <input type="hidden" name="email" th:value="${demoAccount.email}">
+                    <input type="hidden" name="password" th:value="${demoAccount.password}">
+                    <button type="submit" class="btn btn-on-dark">Try the demo</button>
+                </form>
+                <a class="btn btn-ghost-dark" th:href="@{/register}">Create a free account</a>
+                <a class="btn btn-ghost-dark" th:href="@{/login}">Sign in</a>
+            </div>
+            <p class="landing-note" th:if="${demoAccount.enabled}">
+                No sign-up needed: the demo account comes with sample applications, interviews and questions<span
+                    th:if="${demoAccount.resetScheduled}">, and is reset every night</span>.</p>
+        </div>
+        <ul class="features landing-features">
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: briefcase}"></svg></span>Every application and its status history</li>
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: file}"></svg></span>CVs and cover letters, versioned</li>
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: question}"></svg></span>Interview notes and a question bank</li>
+            <li><span class="feature-icon"><svg th:replace="~{fragments/icons :: lock}"></svg></span>Private by default</li>
+        </ul>
+    </section>
+
     <div class="page-head">
         <div>
             <h1>Interview hall</h1>
-            <div class="sub" sec:authorize="isAnonymous()">Real interview questions shared by job seekers, by type. Only the questions are public; everyone's answers stay private.
-                <a th:href="@{/register}">Create a free account</a> to keep your own question bank and practise your answers.</div>
+            <div class="sub" sec:authorize="isAnonymous()">Real interview questions shared by job seekers, by type. Only the questions are public; everyone's answers stay private.</div>
             <div class="sub" sec:authorize="hasRole('USER')">Questions other job seekers have shared. Only the questions are public; everyone's answers stay private.</div>
             <div class="sub" sec:authorize="hasRole('ADMIN')">Admin view: every question from every user, public and private. Answers and self-ratings are private to each user and are not shown.</div>
-        </div>
-        <div class="actions" sec:authorize="isAnonymous()">
-            <a class="btn" th:href="@{/login}">Sign in</a>
-            <a class="btn btn-primary" th:href="@{/register}">Create account</a>
         </div>
         <div class="actions" sec:authorize="hasRole('USER')">
             <a class="btn" th:href="@{/questions}">My questions</a>
@@ -44,6 +66,15 @@
                 <label for="q">Search</label>
                 <input type="text" id="q" name="q" th:value="${q}" placeholder="Words in the question">
             </div>
+            <!-- Technical questions only, so not offered on the Behavioral tab -->
+            <div class="field" th:unless="${category != null and category.name() == 'BEHAVIORAL'}">
+                <label for="language">Language</label>
+                <select id="language" name="language">
+                    <option value="">All languages</option>
+                    <option th:each="l : ${languages}" th:value="${l}" th:text="${l.label}"
+                            th:selected="${l == language}"></option>
+                </select>
+            </div>
             <div class="field" sec:authorize="hasRole('ADMIN')">
                 <label for="visibility">Visibility</label>
                 <select id="visibility" name="visibility">
@@ -69,6 +100,7 @@
         <article class="q-item" th:each="item : ${page.content}">
             <div class="q-meta">
                 <span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span>
+                <span class="badge lang" th:if="${item.language() != null}" th:text="${item.language().label}"></span>
                 <span class="hall-meta" sec:authorize="!hasRole('ADMIN')" th:text="'Shared ' + ${#temporals.format(item.shownDate(), 'd MMM yyyy')}"></span>
                 <th:block sec:authorize="hasRole('ADMIN')">
                     <span class="badge vis-public" th:if="${item.isPublic()}">Public</span>

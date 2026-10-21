@@ -26,8 +26,12 @@ public class AuthController {
         this.userService = userService;
     }
 
+    /** Visitors land on the interview hall, which starts with what JobTrack is and a "Try the demo" button. */
     @GetMapping("/")
     public String home(@AuthenticationPrincipal AppUserDetails me) {
+        if (me == null) {
+            return "redirect:/hall";
+        }
         return "redirect:" + LoginSuccessHandler.homeFor(me);
     }
 

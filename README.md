@@ -17,7 +17,7 @@ FLUSH PRIVILEGES;
 
 **Option B: Docker.** `docker compose up -d` starts MySQL 8.4 on port 3306 with database, user and password all set to `jobtrack`.
 
-Tables are created by Flyway on the first start (one script, `V1__init.sql`). You never run the schema by hand.
+Tables are created by Flyway on the first start (`V1__init.sql`, then `V2__question_language.sql`). You never run the schema by hand.
 
 **Upgrading from a build with numeric ids:** ids are now UUIDs and the old migrations were merged into a fresh V1, so an existing database cannot be migrated in place. Stop the app, run `DROP DATABASE jobtrack;` (it is recreated on the next start), and empty `data/files` (uploads that belonged to the old rows). The initial admin is created again from the config on start.
 
@@ -76,7 +76,7 @@ Upload limits are in `application.properties`: 5MB per file (`jobtrack.upload.ma
 | 06 | Search & filter | Company, position, status, applied-date range; sortable; paginated |
 | 07 | Dashboard | Totals, active, per-status counts, interviews in the next 14 days and the last 14 days, recently updated |
 | 08 | Security | Data isolation, file permissions, CSRF, CSP, form and file validation, error pages |
-| 09 | Interview questions | Personal question bank, separate from applications: technical and behavioral questions with your answer and a self-rating; search and filter |
+| 09 | Interview questions | Personal question bank, separate from applications: technical and behavioral questions with your answer and a self-rating; technical questions can be tagged with a programming language (Java, C#, Python, ...); search and filter by type, language and rating |
 | 10 | Interview hall | Questions users chose to make public, browsable by everyone, **including visitors who are not signed in** (questions only, never answers or authors); signed-in users can copy a question into their own bank |
 | — | Admin | Monitoring overview (users, sign-ins, site-wide status distribution, storage, questions), all users' interview questions (no answers), user list with search, user detail, enable/disable, delete user (with all their data and files); read-only view of any user's applications |
 
@@ -200,6 +200,19 @@ Pushing to `master` (or running the workflow by hand) runs `.github/workflows/de
 The app listens on port **5566**. On the VPS it is bound to `127.0.0.1:5566` only and also joins the shared `proxy`
 Docker network as `jobtrack-app`, so a reverse proxy can reach it either way (example in `deploy/nginx.conf`).
 MySQL has no published port.
+
+### Demo account
+
+For visitors (for example recruiters looking at the project), JobTrack can run a shared demo account:
+
+* `JOBTRACK_DEMO_ENABLED=true` (on in `docker-compose.prod.yml`, off by default) creates a regular user
+  `JOBTRACK_DEMO_EMAIL` / `JOBTRACK_DEMO_PASSWORD` on start, with fictional sample applications in every stage,
+  status history, past and upcoming interviews and an interview question bank (most questions public, so the hall is not empty).
+* Visitors who open `/` land on the interview hall, which starts with a short introduction and a **Try the demo**
+  button (one click signs in to the demo account); the sign-in page has the same button.
+* Because everyone shares it, the demo account cannot change its email or password and cannot share questions to the hall.
+* Every night at 04:00 (NZ time) the demo user is deleted with all its data and files and created again
+  (`JOBTRACK_DEMO_RESET_CRON`, Spring cron format; `-` turns it off). The reset needs an administrator to exist.
 
 One-time setup:
 

@@ -42,6 +42,14 @@
                 </select>
             </div>
             <div class="field">
+                <label for="language">Language</label>
+                <select id="language" name="language">
+                    <option value="">All languages</option>
+                    <option th:each="l : ${languages}" th:value="${l}" th:text="${l.label}"
+                            th:selected="${l == language}"></option>
+                </select>
+            </div>
+            <div class="field">
                 <label for="visibility">Visibility</label>
                 <select id="visibility" name="visibility">
                     <option value="">Public and private</option>
@@ -75,7 +83,8 @@
                 </tr>
                 <tr th:each="item : ${page.content}">
                     <td class="q-cell cell-main" th:text="${item.questionText()}">Question</td>
-                    <td data-label="Type"><span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span></td>
+                    <td data-label="Type"><span class="badge" th:classappend="${item.category().css}" th:text="${item.category().label}"></span>
+                        <span class="badge lang" th:if="${item.language() != null}" th:text="${item.language().label}"></span></td>
                     <td data-label="Visibility">
                         <span class="badge vis-public" th:if="${item.isPublic()}">Public</span>
                         <span class="badge vis-private" th:unless="${item.isPublic()}">Private</span>

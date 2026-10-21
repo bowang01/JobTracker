@@ -24,6 +24,17 @@
             <button type="submit" class="btn btn-primary">Sign in</button>
         </form>
         <p class="auth-foot">No account yet? <a th:href="@{/register}">Register</a></p>
+
+        <!-- Shared demo account with sample data, for visitors who just want to look around -->
+        <div class="demo-box" th:if="${demoAccount.enabled}">
+            <p><strong>Just looking around?</strong> Sign in to the demo account with sample applications,
+                interviews and questions.</p>
+            <form th:action="@{/login}" method="post">
+                <input type="hidden" name="email" th:value="${demoAccount.email}">
+                <input type="hidden" name="password" th:value="${demoAccount.password}">
+                <button type="submit" class="btn">Try the demo account</button>
+            </form>
+        </div>
     </div>
     </div>
 </main>

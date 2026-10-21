@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.jobtrack.domain.ApplicationStatus;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 import com.jobtrack.security.AppUserDetails;
@@ -92,11 +93,13 @@ public class AdminController {
     @GetMapping("/questions")
     public String questions(HttpSession session, @AuthenticationPrincipal AppUserDetails me, Model model) {
         AdminQuestionFilter f = questionFilter(session);
-        model.addAttribute("page", questionService.allForAdmin(me, f.getCategory(), f.getVisibility(),
+        model.addAttribute("page", questionService.allForAdmin(me, f.getCategory(), f.getLanguage(), f.getVisibility(),
                 f.getOwnerId(), f.getQ(), f.getPage()));
         model.addAttribute("categories", QuestionCategory.values());
+        model.addAttribute("languages", ProgrammingLanguage.values());
         model.addAttribute("visibilities", Visibility.values());
         model.addAttribute("category", f.getCategory());
+        model.addAttribute("language", f.getLanguage());
         model.addAttribute("visibility", f.getVisibility());
         model.addAttribute("ownerId", f.getOwnerId());
         model.addAttribute("owner", f.getOwnerId() == null ? null : userService.get(f.getOwnerId()));
@@ -110,11 +113,13 @@ public class AdminController {
      */
     @PostMapping("/questions/filter")
     public String filterQuestions(@RequestParam(required = false) String category,
+                                  @RequestParam(required = false) String language,
                                   @RequestParam(required = false) String visibility,
                                   @RequestParam(required = false) UUID ownerId,
                                   @RequestParam(required = false) String q, HttpSession session) {
         AdminQuestionFilter f = questionFilter(session);
         f.setCategory(parse(QuestionCategory.class, category));
+        f.setLanguage(parse(ProgrammingLanguage.class, language));
         f.setVisibility(parse(Visibility.class, visibility));
         f.setOwnerId(ownerId);
         f.setQ(q);

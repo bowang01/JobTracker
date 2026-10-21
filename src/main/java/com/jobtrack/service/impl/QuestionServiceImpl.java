@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.jobtrack.domain.AnswerRating;
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 import com.jobtrack.repository.InterviewQuestionRepository;
@@ -55,9 +56,14 @@ public class QuestionServiceImpl implements QuestionService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<InterviewQuestion> search(AppUserDetails me, QuestionCategory category, AnswerRating rating,
-                                          String keyword) {
-        return questions.searchOwn(me.getId(), category, rating, keyword);
+    public List<InterviewQuestion> search(AppUserDetails me, QuestionCategory category, ProgrammingLanguage language,
+                                          AnswerRating rating, String keyword) {
+        return questions.searchOwn(me.getId(), category, languageFor(category, language), rating, keyword);
+    }
+
+    /** Behavioral questions have no language, so a language filter only applies when technical questions are listed. */
+    private static ProgrammingLanguage languageFor(QuestionCategory category, ProgrammingLanguage language) {
+        return category == QuestionCategory.BEHAVIORAL ? null : language;
     }
 
     @Transactional(readOnly = true)
@@ -108,15 +114,16 @@ public class QuestionServiceImpl implements QuestionService {
      */
     @Transactional(readOnly = true)
     @Override
-    public Page<PublicQuestion> hall(AppUserDetails me, QuestionCategory category, Visibility visibility,
-                                     String keyword, int page) {
+    public Page<PublicQuestion> hall(AppUserDetails me, QuestionCategory category, ProgrammingLanguage language,
+                                     Visibility visibility, String keyword, int page) {
+        ProgrammingLanguage lang = languageFor(category, language);
         if (me != null && me.isAdmin()) {
-            return questions.searchAll(category, visibility, null, keyword,
+            return questions.searchAll(category, lang, visibility, null, keyword,
                             PageRequest.of(Math.max(page, 0), HALL_PAGE_SIZE,
                                     Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"))))
                     .map(PublicQuestion::forAdmin);
         }
-        return questions.searchPublic(category, keyword,
+        return questions.searchPublic(category, lang, keyword,
                         PageRequest.of(Math.max(page, 0), HALL_PAGE_SIZE,
                                 Sort.by(Sort.Direction.DESC, "publishedAt").and(Sort.by(Sort.Direction.DESC, "id"))))
                 .map(q -> PublicQuestion.forUser(q, me == null ? null : me.getId()));
@@ -148,6 +155,7 @@ public class QuestionServiceImpl implements QuestionService {
         InterviewQuestion copy = new InterviewQuestion();
         copy.setOwner(users.getReferenceById(me.getId()));
         copy.setCategory(src.getCategory());
+        copy.setLanguage(src.getLanguage());
         copy.setQuestionText(src.getQuestionText());
         copy.changeVisibility(Visibility.PRIVATE, LocalDateTime.now(clock));
         return questions.save(copy);
@@ -156,12 +164,12 @@ public class QuestionServiceImpl implements QuestionService {
     /** Admin monitoring: all users' questions, public and private, without answers or self-ratings. */
     @Transactional(readOnly = true)
     @Override
-    public Page<AdminQuestion> allForAdmin(AppUserDetails me, QuestionCategory category, Visibility visibility,
-                                           UUID ownerId, String keyword, int page) {
+    public Page<AdminQuestion> allForAdmin(AppUserDetails me, QuestionCategory category, ProgrammingLanguage language,
+                                           Visibility visibility, UUID ownerId, String keyword, int page) {
         if (!me.isAdmin()) {
             throw new AccessDeniedException("Only administrators can see all questions");
         }
-        return questions.searchAll(category, visibility, ownerId, keyword,
+        return questions.searchAll(category, languageFor(category, language), visibility, ownerId, keyword,
                         PageRequest.of(Math.max(page, 0), ADMIN_PAGE_SIZE,
                                 Sort.by(Sort.Direction.DESC, "createdAt").and(Sort.by(Sort.Direction.DESC, "id"))))
                 .map(AdminQuestion::of);

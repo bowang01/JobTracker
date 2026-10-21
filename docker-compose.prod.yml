@@ -37,6 +37,10 @@ services:
       JOBTRACK_DATA_DIR: /app/data
       JOBTRACK_ADMIN_EMAIL: ${JOBTRACK_ADMIN_EMAIL:?JOBTRACK_ADMIN_EMAIL is required}
       JOBTRACK_ADMIN_PASSWORD: ${JOBTRACK_ADMIN_PASSWORD:?JOBTRACK_ADMIN_PASSWORD is required}
+      # Public demo account for visitors (its password is shown on the site, so it is not a secret)
+      JOBTRACK_DEMO_ENABLED: ${JOBTRACK_DEMO_ENABLED:-true}
+      JOBTRACK_DEMO_EMAIL: ${JOBTRACK_DEMO_EMAIL:-demo@jobtrack.co.nz}
+      JOBTRACK_DEMO_PASSWORD: ${JOBTRACK_DEMO_PASSWORD:-demo1234}
     # Bound to localhost only: reachable by an nginx on the VPS host, not from the internet
     ports:
       - "127.0.0.1:5566:5566"

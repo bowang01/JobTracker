@@ -41,6 +41,11 @@ public class InterviewQuestion {
     @Column(nullable = false, length = 20)
     private QuestionCategory category;
 
+    /** Technical questions only: the language the question is about; null = not specified. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tech_language", length = 20)
+    private ProgrammingLanguage language;
+
     @Column(name = "question_text", nullable = false, length = 5000)
     private String questionText;
 
@@ -102,6 +107,14 @@ public class InterviewQuestion {
 
     public void setCategory(QuestionCategory category) {
         this.category = category;
+    }
+
+    public ProgrammingLanguage getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(ProgrammingLanguage language) {
+        this.language = language;
     }
 
     public String getQuestionText() {

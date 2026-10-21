@@ -29,6 +29,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/css/**", "/js/**", "/icons/**", "/manifest.json", "/favicon.ico", "/error", "/error/**").permitAll()
                 .requestMatchers("/login", "/register").permitAll()
+                // The home page: visitors are redirected to the public interview hall (AuthController)
+                .requestMatchers(HttpMethod.GET, "/").permitAll()
                 // Interview hall: public questions can be browsed without an account (read-only).
                 // Its tab/search/page state is kept in the visitor's session like for signed-in users.
                 .requestMatchers(HttpMethod.GET, "/hall").permitAll()

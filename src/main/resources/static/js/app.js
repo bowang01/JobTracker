@@ -35,6 +35,18 @@
     }
   });
 
+  // Question form: the Language field only applies to technical questions
+  function syncTechnicalOnly() {
+    var checked = document.querySelector('input[name=category]:checked');
+    var technical = !checked || checked.value === 'TECHNICAL';
+    var fields = document.querySelectorAll('[data-technical-only]');
+    for (var i = 0; i < fields.length; i++) fields[i].hidden = !technical;
+  }
+  document.addEventListener('DOMContentLoaded', syncTechnicalOnly);
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.name === 'category' && e.target.type === 'radio') syncTechnicalOnly();
+  });
+
   // Check the file size in the browser before uploading (the server validates it again)
   document.addEventListener('change', function (e) {
     var input = e.target;

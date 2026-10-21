@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.jobtrack.domain.InterviewQuestion;
+import com.jobtrack.domain.ProgrammingLanguage;
 import com.jobtrack.domain.QuestionCategory;
 import com.jobtrack.domain.Visibility;
 
@@ -13,6 +14,7 @@ import com.jobtrack.domain.Visibility;
  */
 public record AdminQuestion(UUID id,
                             QuestionCategory category,
+                            ProgrammingLanguage language,
                             String questionText,
                             Visibility visibility,
                             UUID ownerId,
@@ -21,7 +23,7 @@ public record AdminQuestion(UUID id,
                             LocalDateTime publishedAt) {
 
     public static AdminQuestion of(InterviewQuestion q) {
-        return new AdminQuestion(q.getId(), q.getCategory(), q.getQuestionText(), q.getVisibility(),
+        return new AdminQuestion(q.getId(), q.getCategory(), q.getLanguage(), q.getQuestionText(), q.getVisibility(),
                 q.getOwner().getId(), q.getOwner().getEmail(), q.getCreatedAt(), q.getPublishedAt());
     }
 
