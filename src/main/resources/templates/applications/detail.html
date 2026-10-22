@@ -122,8 +122,14 @@
                             <span class="field-error" th:if="${#fields.hasErrors('toStatus')}" th:errors="*{toStatus}"></span>
                         </div>
                         <div class="field" th:classappend="${#fields.hasErrors('occurredAt')} ? 'has-error'">
-                            <label for="occurredAt" class="req">When</label>
-                            <input type="datetime-local" th:field="*{occurredAt}">
+                            <div class="label-row">
+                                <label for="occurredAt" class="req">When</label>
+                                <button type="button" class="now-btn" data-fill-now="occurredAt" title="Set to the current time">Now</button>
+                            </div>
+                            <!-- On a fresh form the time is reset to the device's current time on load (app.js), so the
+                                 picker's "Today" button keeps a correct time. After a failed submit the entered value is kept. -->
+                            <input type="datetime-local" th:field="*{occurredAt}"
+                                   th:attr="data-default-now=${#fields.hasErrors('*')} ? null : 'true'">
                             <span class="field-error" th:if="${#fields.hasErrors('occurredAt')}" th:errors="*{occurredAt}"></span>
                         </div>
                         <div class="field full" th:classappend="${#fields.hasErrors('note')} ? 'has-error'">

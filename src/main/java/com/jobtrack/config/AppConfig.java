@@ -10,9 +10,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling // demo account reset (DemoDataInitializer)
 public class AppConfig {
 
-    /** Single source of time, replaceable in tests. */
+    /** Single source of time, replaceable in tests. Always in the app's zone, never the server's (see AppTimeZone). */
     @Bean
     public Clock clock() {
-        return Clock.systemDefaultZone();
+        return Clock.system(AppTimeZone.apply());
     }
 }

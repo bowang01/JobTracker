@@ -209,6 +209,14 @@ main > .card + .card, main > .card + details, main > details + .card, main > .ta
 @media (min-width: 720px) { .card-flush { padding: 0; } }
 .section-note { color: var(--ink-3); font-size: .85rem; font-weight: 400; }
 
+/* A field label with a small action on the right, e.g. "When ... Now" */
+.label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.now-btn {
+  background: none; border: 0; padding: 2px 4px; margin: -2px -4px; border-radius: 6px;
+  font: inherit; font-size: .8rem; font-weight: 600; color: var(--accent); cursor: pointer;
+}
+.now-btn:hover { background: var(--accent-soft); }
+
 /* Optional attachments on the new-application form */
 fieldset.attachments { border: 0; border-top: 1px solid var(--line); margin: 22px 0 0; padding: 18px 0 0; min-width: 0; }
 fieldset.attachments legend { padding: 0 8px 0 0; font-weight: 700; color: var(--ink); }
