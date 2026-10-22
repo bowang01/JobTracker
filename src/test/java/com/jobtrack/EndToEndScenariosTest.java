@@ -167,9 +167,70 @@ class EndToEndScenariosTest extends IntegrationTestBase {
                 .andExpect(header().string("Content-Disposition", containsString("attachment")))
                 .andExpect(header().string("Content-Disposition", containsString("cv.pdf")));
 
+        // Viewing opens the PDF inline (the page links it with target="_blank"), with a locked-down CSP
+        mvc.perform(get("/documents/{id}/view", cvs.get(1).getId()).with(user(me)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", containsString("application/pdf")))
+                .andExpect(header().string("Content-Disposition", containsString("inline")))
+                .andExpect(header().string("Content-Security-Policy", containsString("default-src 'none'")));
+
         mvc.perform(get("/applications/{id}", id).with(user(me)))
                 .andExpect(status().isOk())
                 .andExpect(view().name("applications/detail"));
+    }
+
+    @Test
+    void newApplicationCanBeCreatedWithCvCoverLetterAndJdAtOnce() throws Exception {
+        AppUserDetails me = newUser("attach");
+        MvcResult r = mvc.perform(multipart("/applications")
+                        .file(new MockMultipartFile("cvFile", "my-cv.pdf", "application/pdf", "%PDF-1.4 cv".getBytes(UTF_8)))
+                        .file(new MockMultipartFile("coverLetterFile", "cl.pdf", "application/pdf", "%PDF-1.4 cl".getBytes(UTF_8)))
+                        .file(new MockMultipartFile("jdFile", "jd.pdf", "application/pdf", "%PDF-1.4 jd".getBytes(UTF_8)))
+                        .param("company", "Attach Co").param("positionTitle", "Engineer")
+                        .with(user(me)).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(flash().attribute("success", containsString("3 attachments")))
+                .andReturn();
+        UUID id = UUID.fromString(r.getResponse().getRedirectedUrl().substring("/applications/".length()));
+
+        assertThat(documents.findByApplicationIdOrderByDocTypeAscVersionNoDesc(id))
+                .extracting(ApplicationDocument::getDocType)
+                .containsExactlyInAnyOrder(DocumentType.CV, DocumentType.COVER_LETTER, DocumentType.JD);
+        assertThat(documents.findByApplicationIdOrderByDocTypeAscVersionNoDesc(id))
+                .allSatisfy(d -> assertThat(storage.exists(d.getStoredFilename())).isTrue());
+
+        // Attachments are optional: only a CV, the other inputs left empty
+        MvcResult r2 = mvc.perform(multipart("/applications")
+                        .file(new MockMultipartFile("cvFile", "cv.pdf", "application/pdf", "%PDF-1.4 cv".getBytes(UTF_8)))
+                        .file(new MockMultipartFile("coverLetterFile", "", "application/octet-stream", new byte[0]))
+                        .param("company", "Only CV Co").param("positionTitle", "Engineer")
+                        .with(user(me)).with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+        UUID id2 = UUID.fromString(r2.getResponse().getRedirectedUrl().substring("/applications/".length()));
+        assertThat(documents.findByApplicationIdOrderByDocTypeAscVersionNoDesc(id2)).hasSize(1);
+    }
+
+    @Test
+    void anInvalidAttachmentCreatesNothing() throws Exception {
+        AppUserDetails me = newUser("badattach");
+        long appsBefore = apps.count();
+        long filesBefore = storedFileCount();
+
+        // The CV is fine, the cover letter is a Word file: the whole create is rolled back, including the CV on disk
+        mvc.perform(multipart("/applications")
+                        .file(new MockMultipartFile("cvFile", "cv.pdf", "application/pdf", "%PDF-1.4 cv".getBytes(UTF_8)))
+                        .file(new MockMultipartFile("coverLetterFile", "cl.docx", "application/octet-stream",
+                                new byte[] {'P', 'K', 3, 4, 0, 0}))
+                        .param("company", "Rollback Co").param("positionTitle", "Engineer")
+                        .with(user(me)).with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(view().name("applications/form"))
+                .andExpect(model().attribute("attachmentErrors",
+                        org.hamcrest.Matchers.hasKey("COVER_LETTER")));
+
+        assertThat(apps.count()).isEqualTo(appsBefore);
+        assertThat(storedFileCount()).isEqualTo(filesBefore);
     }
 
     // ------------------------------------------------------------------ 3. Edit and delete (files are cleaned up on delete)
@@ -443,6 +504,7 @@ class EndToEndScenariosTest extends IntegrationTestBase {
         mvc.perform(multipart("/applications/{id}/documents", aliceApp).file(pdf("evil.pdf"))
                 .param("type", "CV").with(user(bob)).with(csrf())).andExpect(status().isNotFound());
         mvc.perform(get("/documents/{id}/download", docId).with(user(bob))).andExpect(status().isNotFound());
+        mvc.perform(get("/documents/{id}/view", docId).with(user(bob))).andExpect(status().isNotFound());
         mvc.perform(post("/documents/{id}/delete", docId).with(user(bob)).with(csrf())).andExpect(status().isNotFound());
         mvc.perform(post("/applications/{id}/delete", aliceApp).with(user(bob)).with(csrf()))
                 .andExpect(status().isNotFound());
@@ -461,6 +523,7 @@ class EndToEndScenariosTest extends IntegrationTestBase {
         AppUserDetails admin = newAdmin();
         mvc.perform(get("/applications/{id}", aliceApp).with(user(admin))).andExpect(status().isOk());
         mvc.perform(get("/documents/{id}/download", docId).with(user(admin))).andExpect(status().isOk());
+        mvc.perform(get("/documents/{id}/view", docId).with(user(admin))).andExpect(status().isOk());
         mvc.perform(get("/admin/users").with(user(admin))).andExpect(status().isOk());
     }
 
@@ -480,10 +543,12 @@ class EndToEndScenariosTest extends IntegrationTestBase {
         System.arraycopy("%PDF-1.4".getBytes(UTF_8), 0, big, 0, 8);
         MockMultipartFile tooBig = new MockMultipartFile("file", "big.pdf", "application/pdf", big);
         MockMultipartFile empty = new MockMultipartFile("file", "empty.pdf", "application/pdf", new byte[0]);
-        byte[] binaryTxt = new byte[] {'h', 'i', 0, (byte) 0xFF};
-        MockMultipartFile badTxt = new MockMultipartFile("file", "notes.txt", "text/plain", binaryTxt);
+        // Only PDF is accepted: real Word and text files are rejected too
+        MockMultipartFile docx = new MockMultipartFile("file", "cl.docx", "application/octet-stream",
+                new byte[] {'P', 'K', 3, 4, 0, 0});
+        MockMultipartFile txt = new MockMultipartFile("file", "notes.txt", "text/plain", "Hello JobTrack".getBytes(UTF_8));
 
-        for (MockMultipartFile f : Arrays.asList(exe, fakePdf, tooBig, empty, badTxt)) {
+        for (MockMultipartFile f : Arrays.asList(exe, fakePdf, tooBig, empty, docx, txt)) {
             mvc.perform(multipart("/applications/{id}/documents", id).file(f)
                             .param("type", "CV").with(user(me)).with(csrf()))
                     .andExpect(redirectedUrl("/applications/" + id))
@@ -493,13 +558,9 @@ class EndToEndScenariosTest extends IntegrationTestBase {
         assertThat(documents.findByApplicationIdOrderByDocTypeAscVersionNoDesc(id)).isEmpty();
         assertThat(storedFileCount()).isEqualTo(filesBefore);
 
-        // Valid docx / txt files are accepted
-        MockMultipartFile docx = new MockMultipartFile("file", "cl.docx", "application/octet-stream",
-                new byte[] {'P', 'K', 3, 4, 0, 0});
-        MockMultipartFile txt = new MockMultipartFile("file", "notes.txt", "text/plain", "Hello JobTrack".getBytes(UTF_8));
-        upload(me, id, DocumentType.COVER_LETTER, docx);
-        upload(me, id, DocumentType.OTHER, txt);
-        assertThat(documents.findByApplicationIdOrderByDocTypeAscVersionNoDesc(id)).hasSize(2);
+        // A valid PDF is accepted
+        upload(me, id, DocumentType.COVER_LETTER, pdf("cl.pdf"));
+        assertThat(documents.findByApplicationIdOrderByDocTypeAscVersionNoDesc(id)).hasSize(1);
 
         // Invalid forms
         mvc.perform(post("/applications").with(user(me)).with(csrf())

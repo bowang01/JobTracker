@@ -81,7 +81,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         String original = sanitizeFilename(file.getOriginalFilename());
         String ext = extensionOf(original);
         AllowedFileType type = AllowedFileType.fromExtension(ext)
-                .orElseThrow(() -> new BusinessException("Unsupported file type. Allowed: " + AllowedFileType.DESCRIPTION));
+                .orElseThrow(() -> new BusinessException("Only PDF files can be uploaded"));
 
         byte[] bytes;
         try {
@@ -96,7 +96,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             throw new BusinessException("File too large: the limit is " + getMaxSizeLabel() + " per file");
         }
         if (!type.contentMatches(bytes)) {
-            throw new BusinessException("The file content does not match its extension; it may be corrupt or not a real ." + type.extension() + " file");
+            throw new BusinessException("This is not a valid PDF file (it may be corrupt or renamed)");
         }
 
         String storedName = UUID.randomUUID() + "." + type.extension();

@@ -15,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.jobtrack.domain.ApplicationDocument;
 import com.jobtrack.domain.ApplicationStatus;
@@ -36,6 +37,7 @@ import com.jobtrack.web.form.StatusChangeForm;
 import com.jobtrack.service.AccessGuard;
 import com.jobtrack.service.ApplicationDetail;
 import com.jobtrack.service.BusinessException;
+import com.jobtrack.service.DocumentService;
 import com.jobtrack.service.FileStorageService;
 import com.jobtrack.service.JobApplicationService;
 import com.jobtrack.service.Text;
@@ -54,11 +56,13 @@ public class JobApplicationServiceImpl implements JobApplicationService {
     private final UserRepository users;
     private final FileStorageService storage;
     private final AccessGuard guard;
+    private final DocumentService documentService;
     private final Clock clock;
 
     public JobApplicationServiceImpl(JobApplicationRepository applications, StatusChangeRepository history,
                                  InterviewRepository interviews, DocumentRepository documents,
-                                 UserRepository users, FileStorageService storage, AccessGuard guard, Clock clock) {
+                                 UserRepository users, FileStorageService storage, AccessGuard guard,
+                                 DocumentService documentService, Clock clock) {
         this.applications = applications;
         this.history = history;
         this.interviews = interviews;
@@ -66,6 +70,7 @@ public class JobApplicationServiceImpl implements JobApplicationService {
         this.users = users;
         this.storage = storage;
         this.guard = guard;
+        this.documentService = documentService;
         this.clock = clock;
     }
 
@@ -139,6 +144,27 @@ public class JobApplicationServiceImpl implements JobApplicationService {
 
         // Rule 2: the initial status is recorded in the history too, so the current status always has a source entry
         history.save(new StatusChange(app, null, initial, initialOccurred, now, "Application created", owner));
+        return app;
+    }
+
+    @Transactional
+    @Override
+    public JobApplication create(ApplicationForm form, Map<DocumentType, MultipartFile> attachments, AppUserDetails me) {
+        JobApplication app = create(form, me);
+        if (attachments != null) {
+            for (Map.Entry<DocumentType, MultipartFile> e : attachments.entrySet()) {
+                MultipartFile file = e.getValue();
+                if (file == null || file.isEmpty()) {
+                    continue; // attachments are optional
+                }
+                try {
+                    // Joins this transaction: an invalid file rolls back the application and every file written so far
+                    documentService.upload(app.getId(), e.getKey(), file, me);
+                } catch (BusinessException ex) {
+                    throw new BusinessException(e.getKey().name(), ex.getMessage());
+                }
+            }
+        }
         return app;
     }
 

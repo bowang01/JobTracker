@@ -21,6 +21,8 @@ import jakarta.servlet.http.HttpServletRequest;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String UUID_PATTERN = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+    private static final String APPLICATION_PAGE = "^/applications/" + UUID_PATTERN + "$";
 
     @ExceptionHandler({NotFoundException.class, MethodArgumentTypeMismatchException.class})
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -46,7 +48,7 @@ public class GlobalExceptionHandler {
         if (referer != null) {
             try {
                 String path = URI.create(referer).getPath();
-                if (path != null && path.matches("^/applications/\\d+$")) {
+                if (path != null && (path.matches(APPLICATION_PAGE) || path.equals("/applications/new"))) {
                     return path;
                 }
             } catch (IllegalArgumentException ignored) {
@@ -54,7 +56,7 @@ public class GlobalExceptionHandler {
             }
         }
         String uri = request.getRequestURI();
-        if (uri != null && uri.matches("^/applications/\\d+/documents$")) {
+        if (uri != null && uri.matches("^/applications/" + UUID_PATTERN + "/documents$")) {
             return uri.substring(0, uri.length() - "/documents".length());
         }
         return "/applications";

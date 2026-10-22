@@ -53,7 +53,38 @@ public class DocumentController {
         return "redirect:/applications/" + appId;
     }
 
-    /** Always served as an attachment (never rendered inline), without trusting the uploaded filename or MIME type. */
+    /**
+     * Opens a PDF in the browser (the detail page links here with target="_blank").
+     * Only documents stored as PDF are served inline: their type was checked by extension and file signature
+     * on upload. Older non-PDF documents are always downloaded instead.
+     */
+    @GetMapping("/documents/{id}/view")
+    public ResponseEntity<Resource> view(@PathVariable UUID id, @AuthenticationPrincipal AppUserDetails me) {
+        ApplicationDocument doc = service.getForDownload(id, me);
+        if (!isPdf(doc)) {
+            return download(id, me);
+        }
+        Resource resource = storage.load(doc.getStoredFilename());
+        ContentDisposition cd = ContentDisposition.inline()
+                .filename(doc.getOriginalFilename(), StandardCharsets.UTF_8)
+                .build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, cd.toString())
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
+                // Replaces the site-wide CSP for this response only: the browser's PDF viewer needs object-src,
+                // and nothing else (scripts, styles, connections) is allowed. Not frameable.
+                .header("Content-Security-Policy", "default-src 'none'; object-src 'self'; frame-ancestors 'none'")
+                .contentType(MediaType.APPLICATION_PDF)
+                .contentLength(doc.getSizeBytes())
+                .body(resource);
+    }
+
+    private static boolean isPdf(ApplicationDocument doc) {
+        return MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(doc.getContentType())
+                && doc.getStoredFilename().endsWith(".pdf");
+    }
+
+    /** Served as an attachment, without trusting the uploaded filename or MIME type. */
     @GetMapping("/documents/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable UUID id, @AuthenticationPrincipal AppUserDetails me) {
         ApplicationDocument doc = service.getForDownload(id, me);

@@ -1,16 +1,13 @@
 package com.jobtrack.service;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CodingErrorAction;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
 
 /**
- * Whitelist of uploadable file types. Checks both the extension and the file signature (magic bytes),
- * so an executable renamed to .pdf is rejected.
+ * Whitelist of uploadable file types: PDF only, so every document can be viewed in the browser.
+ * Checks both the extension and the file signature (magic bytes), so an executable renamed to .pdf is rejected.
+ * Documents uploaded before this restriction (DOC, DOCX, TXT) can still be downloaded.
  */
 public enum AllowedFileType {
 
@@ -19,41 +16,11 @@ public enum AllowedFileType {
         public boolean contentMatches(byte[] b) {
             return startsWith(b, new byte[] {'%', 'P', 'D', 'F', '-'});
         }
-    },
-    DOCX("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-        @Override
-        public boolean contentMatches(byte[] b) {
-            return startsWith(b, new byte[] {'P', 'K', 0x03, 0x04});
-        }
-    },
-    DOC("doc", "application/msword") {
-        @Override
-        public boolean contentMatches(byte[] b) {
-            return startsWith(b, new byte[] {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0,
-                (byte) 0xA1, (byte) 0xB1, 0x1A, (byte) 0xE1});
-        }
-    },
-    TXT("txt", "text/plain; charset=UTF-8") {
-        @Override
-        public boolean contentMatches(byte[] b) {
-            for (byte x : b) {
-                if (x == 0) {
-                    return false;
-                }
-            }
-            try {
-                StandardCharsets.UTF_8.newDecoder()
-                        .onMalformedInput(CodingErrorAction.REPORT)
-                        .onUnmappableCharacter(CodingErrorAction.REPORT)
-                        .decode(ByteBuffer.wrap(b));
-                return true;
-            } catch (CharacterCodingException e) {
-                return false;
-            }
-        }
     };
+    public static final String DESCRIPTION = "PDF";
 
-    public static final String DESCRIPTION = "PDF, DOC, DOCX, TXT (UTF-8)";
+    /** Value for the HTML accept attribute of file inputs. */
+    public static final String ACCEPT = ".pdf,application/pdf";
 
     private final String extension;
     private final String contentType;

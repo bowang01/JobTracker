@@ -171,11 +171,17 @@
                          th:classappend="${!st.first} ? 'old'">
                         <div>
                             <span class="ver" th:text="'v' + ${doc.versionNo}"></span>
-                            <a class="name" th:href="@{/documents/{id}/download(id=${doc.id})}" th:text="${doc.originalFilename}"></a>
+                            <!-- PDFs open in a new tab; older non-PDF documents are downloaded -->
+                            <a class="name" th:if="${doc.contentType == 'application/pdf'}"
+                               th:href="@{/documents/{id}/view(id=${doc.id})}" target="_blank" rel="noopener"
+                               th:text="${doc.originalFilename}" title="Open in a new tab"></a>
+                            <a class="name" th:unless="${doc.contentType == 'application/pdf'}"
+                               th:href="@{/documents/{id}/download(id=${doc.id})}" th:text="${doc.originalFilename}"></a>
                             <span class="latest" th:if="${st.first}">current</span>
                             <div class="muted">
                                 <span th:text="${doc.humanSize}"></span> ·
-                                <span th:text="${#temporals.format(doc.uploadedAt, 'yyyy-MM-dd HH:mm')}"></span>
+                                <span th:text="${#temporals.format(doc.uploadedAt, 'yyyy-MM-dd HH:mm')}"></span> ·
+                                <a th:href="@{/documents/{id}/download(id=${doc.id})}">Download</a>
                             </div>
                         </div>
                         <form class="inline" method="post" th:action="@{/documents/{id}/delete(id=${doc.id})}" sec:authorize="hasRole('USER')"
@@ -202,10 +208,10 @@
                             <div class="field">
                                 <label for="doc-file" class="req">File</label>
                                 <input type="file" id="doc-file" name="file" required
-                                       accept=".pdf,.doc,.docx,.txt" th:attr="data-max-bytes=${maxUploadBytes}">
+                                       th:attr="accept=${acceptTypes},data-max-bytes=${maxUploadBytes}">
                             </div>
                         </div>
-                        <p class="muted"><small>[[${allowedTypes}]], up to [[${maxUploadLabel}]] per file.
+                        <p class="muted"><small>[[${allowedTypes}]] only, up to [[${maxUploadLabel}]] per file. Click a file name to open it in a new tab.
                             Uploading the same type again adds a new version; older versions are never overwritten.</small></p>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Upload</button>

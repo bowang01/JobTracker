@@ -13,9 +13,14 @@
         </div>
     </div>
 
+    <!-- New applications can carry files, so that form is multipart. Its CSRF token is also in the URL:
+         if an oversized body cannot be parsed, CSRF still passes and a friendly message is shown. -->
     <form class="card" method="post" th:object="${form}" novalidate
-          th:action="${editing} ? @{/applications/{id}(id=${app.id})} : @{/applications}">
+          th:attr="enctype=${editing ? 'application/x-www-form-urlencoded' : 'multipart/form-data'}"
+          th:action="${editing} ? @{/applications/{id}(id=${app.id})} : @{/applications(_csrf=${_csrf.token})}">
         <div class="alert alert-error" th:if="${#fields.hasErrors('*')}">Please fix the highlighted fields.</div>
+        <div class="alert alert-error" th:if="${!editing and !#maps.isEmpty(attachmentErrors)}">
+            Please check the attachments below.</div>
 
         <div class="form-grid">
             <div class="field" th:classappend="${#fields.hasErrors('company')} ? 'has-error'">
@@ -72,7 +77,7 @@
             <div class="field full" th:classappend="${#fields.hasErrors('jdText')} ? 'has-error'">
                 <label for="jdText">JD text</label>
                 <textarea th:field="*{jdText}" class="tall" maxlength="50000"
-                          placeholder="Paste the job description here. You can also upload a JD file on the detail page; both are kept."></textarea>
+                          placeholder="Paste the job description here. You can also attach the JD as a PDF below; both are kept."></textarea>
                 <span class="field-error" th:if="${#fields.hasErrors('jdText')}" th:errors="*{jdText}"></span>
             </div>
             <div class="field full" th:classappend="${#fields.hasErrors('notes')} ? 'has-error'">
@@ -81,6 +86,25 @@
                 <span class="field-error" th:if="${#fields.hasErrors('notes')}" th:errors="*{notes}"></span>
             </div>
         </div>
+
+        <!-- Optional attachments, only when creating (later versions are uploaded on the detail page) -->
+        <fieldset class="attachments" th:unless="${editing}">
+            <legend>Attachments <span class="section-note">optional · PDF only · up to [[${maxUploadLabel}]] each</span></legend>
+            <div class="attach-grid">
+                <div class="field attach-field" th:each="a : ${ {
+                        {'CV', 'cvFile', 'CV / Resume'},
+                        {'COVER_LETTER', 'coverLetterFile', 'Cover letter'},
+                        {'JD', 'jdFile', 'JD file'} } }"
+                     th:classappend="${attachmentErrors.containsKey(a[0])} ? 'has-error'">
+                    <label th:for="${a[1]}" th:text="${a[2]}">CV</label>
+                    <input type="file" th:id="${a[1]}" th:name="${a[1]}"
+                           th:attr="accept=${acceptTypes},data-max-bytes=${maxUploadBytes}">
+                    <span class="field-error" th:if="${attachmentErrors.containsKey(a[0])}"
+                          th:text="${attachmentErrors.get(a[0])}"></span>
+                </div>
+            </div>
+            <p class="field-error" th:if="${attachmentErrors.containsKey('')}" th:text="${attachmentErrors.get('')}"></p>
+        </fieldset>
 
         <div class="form-actions">
             <button type="submit" class="btn btn-primary" th:text="${editing} ? 'Save changes' : 'Create application'">Save</button>

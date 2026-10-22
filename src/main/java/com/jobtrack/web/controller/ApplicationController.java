@@ -1,5 +1,7 @@
 package com.jobtrack.web.controller;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.jobtrack.domain.ApplicationStatus;
@@ -113,20 +116,51 @@ public class ApplicationController {
     @GetMapping("/new")
     public String newForm(Model model) {
         model.addAttribute("form", new ApplicationForm());
-        model.addAttribute("editing", false);
-        return "applications/form";
+        return showCreateForm(model);
     }
 
+    /**
+     * Creates the application and, optionally, uploads a CV, cover letter and JD file (PDF) in the same step.
+     * If an attachment is invalid nothing is saved and the form is shown again with the error next to that file.
+     */
     @PostMapping
     public String create(@Valid @ModelAttribute("form") ApplicationForm form, BindingResult br,
+                         @RequestParam(name = "cvFile", required = false) MultipartFile cvFile,
+                         @RequestParam(name = "coverLetterFile", required = false) MultipartFile coverLetterFile,
+                         @RequestParam(name = "jdFile", required = false) MultipartFile jdFile,
                          @AuthenticationPrincipal AppUserDetails me, Model model, RedirectAttributes ra) {
         if (br.hasErrors()) {
-            model.addAttribute("editing", false);
-            return "applications/form";
+            return showCreateForm(model);
         }
-        JobApplication app = service.create(form, me);
-        ra.addFlashAttribute("success", "Application created. You can upload your CV, cover letter and JD file below.");
+        Map<DocumentType, MultipartFile> attachments = new LinkedHashMap<>();
+        attachments.put(DocumentType.CV, cvFile);
+        attachments.put(DocumentType.COVER_LETTER, coverLetterFile);
+        attachments.put(DocumentType.JD, jdFile);
+        JobApplication app;
+        try {
+            app = service.create(form, attachments, me);
+        } catch (BusinessException e) {
+            // Browsers cannot re-fill file inputs, so the user has to choose the files again
+            model.addAttribute("attachmentErrors", Map.of(e.getField() == null ? "" : e.getField(),
+                    e.getMessage() + ". Nothing was saved; please choose your files again."));
+            return showCreateForm(model);
+        }
+        long attached = attachments.values().stream().filter(f -> f != null && !f.isEmpty()).count();
+        ra.addFlashAttribute("success", attached == 0
+                ? "Application created. You can upload your CV, cover letter and JD file below."
+                : "Application created with " + attached + (attached == 1 ? " attachment." : " attachments."));
         return "redirect:/applications/" + app.getId();
+    }
+
+    private String showCreateForm(Model model) {
+        model.addAttribute("editing", false);
+        model.addAttribute("maxUploadBytes", storage.getMaxBytes());
+        model.addAttribute("maxUploadLabel", storage.getMaxSizeLabel());
+        model.addAttribute("acceptTypes", AllowedFileType.ACCEPT);
+        if (!model.containsAttribute("attachmentErrors")) {
+            model.addAttribute("attachmentErrors", Map.of());
+        }
+        return "applications/form";
     }
 
     // ------------------------------------------------------------------ Detail
@@ -147,6 +181,7 @@ public class ApplicationController {
         model.addAttribute("maxUploadBytes", storage.getMaxBytes());
         model.addAttribute("maxUploadLabel", storage.getMaxSizeLabel());
         model.addAttribute("allowedTypes", AllowedFileType.DESCRIPTION);
+        model.addAttribute("acceptTypes", AllowedFileType.ACCEPT);
         return "applications/detail";
     }
 

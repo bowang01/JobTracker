@@ -15,7 +15,7 @@ import com.jobtrack.security.AppUserDetails;
 public interface DocumentService {
     ApplicationDocument upload(UUID appId, DocumentType type, MultipartFile file, AppUserDetails me);
 
-    /** Permission check before download: document -> application -> owner/admin. */
+    /** Permission check before download or viewing: document -> application -> owner/admin. */
     ApplicationDocument getForDownload(UUID documentId, AppUserDetails me);
 
     /** Deletes one version and returns the application ID (for the redirect). */

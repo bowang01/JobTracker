@@ -56,7 +56,7 @@ On Windows PowerShell, set variables with `$env:JOBTRACK_ADMIN_PASSWORD='...'`, 
 | `JOBTRACK_ADMIN_EMAIL` | `admin@jobtrack.local` | Initial admin email |
 | `JOBTRACK_ADMIN_PASSWORD` | empty (random) | Initial admin password |
 
-Upload limits are in `application.properties`: 5MB per file (`jobtrack.upload.max-file-size`); PDF, DOC, DOCX and TXT are allowed.
+Upload limits are in `application.properties`: 5MB per file (`jobtrack.upload.max-file-size`); only PDF is allowed, so every document can be opened in the browser (documents uploaded earlier in other formats can still be downloaded).
 
 > The schema needs MySQL 8.0.16 or later (CHECK constraints are enforced from 8.0.16).
 

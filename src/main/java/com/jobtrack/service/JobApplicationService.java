@@ -1,10 +1,13 @@
 package com.jobtrack.service;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.jobtrack.domain.DocumentType;
 import com.jobtrack.domain.JobApplication;
 import com.jobtrack.security.AppUserDetails;
 import com.jobtrack.web.form.ApplicationForm;
@@ -22,6 +25,13 @@ public interface JobApplicationService {
     ApplicationDetail getDetail(UUID id, AppUserDetails me);
 
     JobApplication create(ApplicationForm form, AppUserDetails me);
+
+    /**
+     * Creates an application and, in the same transaction, uploads the optional attachments
+     * (CV, cover letter, JD file; missing or empty files are skipped). If any attachment is invalid nothing is
+     * created and a {@link BusinessException} is thrown whose field is the {@link DocumentType} name.
+     */
+    JobApplication create(ApplicationForm form, Map<DocumentType, MultipartFile> attachments, AppUserDetails me);
 
     void update(UUID id, ApplicationForm form, AppUserDetails me);
 
