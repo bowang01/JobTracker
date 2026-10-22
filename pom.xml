@@ -94,6 +94,15 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Tests run in the app's time zone from the very start (see AppTimeZone), so a CI runner in UTC
+                         gives the same results as a laptop in New Zealand, also around midnight -->
+                    <argLine>-Duser.timezone=Pacific/Auckland</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

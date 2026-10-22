@@ -18,9 +18,11 @@ class AppTimeZoneTest {
         TimeZone original = TimeZone.getDefault();
         try {
             TimeZone.setDefault(TimeZone.getTimeZone("UTC"));   // like a Docker container
-            System.setProperty("jobtrack.time-zone", "Pacific/Auckland");
 
             assertThat(new AppConfig().clock().getZone()).isEqualTo(ZoneId.of("Pacific/Auckland"));
+            assertThat(TimeZone.getDefault().getID()).isEqualTo("UTC");   // the bean never changes the JVM default
+
+            assertThat(AppTimeZone.apply()).isEqualTo(ZoneId.of("Pacific/Auckland"));   // what main() does
             assertThat(ZoneId.systemDefault()).isEqualTo(ZoneId.of("Pacific/Auckland"));
 
             System.setProperty("jobtrack.time-zone", "Europe/London");

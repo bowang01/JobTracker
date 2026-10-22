@@ -9,9 +9,10 @@ import java.util.TimeZone;
  * behind New Zealand: the status form was prefilled with the wrong time and the real current time was rejected
  * as "in the future".
  * <p>The zone comes from the {@code jobtrack.time-zone} system property or the {@code JOBTRACK_TIME_ZONE}
- * environment variable, defaulting to Pacific/Auckland. It is applied as the JVM default before anything reads
- * the clock (in {@code main}, and again when the Clock bean is created, which also covers the tests), so the
- * application clock, JDBC, validation and scheduling all use the same zone wherever the app runs.
+ * environment variable, defaulting to Pacific/Auckland. {@code main} applies it as the JVM default before anything
+ * starts, so the application clock, JDBC, validation and scheduling all use the same zone wherever the app runs.
+ * It must not be changed later at runtime: JDBC drivers (H2 in particular) cache the default zone, and switching it
+ * mid-run shifts stored dates by a day. Tests get the same zone from the surefire argLine in pom.xml.
  */
 public final class AppTimeZone {
 
